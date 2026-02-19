@@ -295,7 +295,7 @@ const ReportesPage = {
       progreso: metaMap[v.id] ? Math.min(100, (v.total / Number(metaMap[v.id])) * 100) : null,
     }));
 
-    const puedeEditarMetas = ['owner', 'admin', 'gerente'].includes(window.App?.user?.rol);
+    const puedeEditarMetas = ['owner', 'admin', 'gerente'].includes(window.App?.userProfile?.rol);
 
     el.innerHTML = `
       <div class="rep-kpis">

@@ -171,7 +171,7 @@ const DashboardPage = {
               Cobros de hoy
               <span id="cierreCajaBadge" class="tab-count-badge" style="background:var(--success);color:white;display:none;"></span>
             </h3>
-            <a href="#/cobros" class="btn btn-sm btn-secondary" style="font-size:var(--font-size-xs);">Ver todos los cobros →</a>
+            <a href="#/clientes" class="btn btn-sm btn-secondary" style="font-size:var(--font-size-xs);">Ver cobros por cliente →</a>
           </div>
           <div class="dash-chart-body no-padding">
             <div id="dashCierreCaja">

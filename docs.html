@@ -2279,6 +2279,43 @@ Router.register('clientes', (el) => ClientesPage.render(el));</code></pre>
       <!-- ==================== CHANGELOG ==================== -->
       <h2 id="changelog">Changelog / Historial de Cambios</h2>
 
+      <h3>Sesión 14 — Correcciones críticas &amp; mejoras de integridad</h3>
+
+      <h4>window.App.user → window.App.userProfile (crítico)</h4>
+      <p><code>app.js</code> setea <code>window.App.userProfile</code> pero 4 lugares en <code>reportes.js</code> y <code>configuracion.js</code> leían <code>window.App?.user?.rol</code> / <code>window.App?.user?.id</code> (que siempre es <code>undefined</code>). Efecto: el botón "Gestionar metas" en Reportes y la sección "Exportar datos" en Configuración nunca renderizaban para ningún rol. El campo <code>created_by</code> en invitaciones se guardaba como <code>undefined</code>.</p>
+
+      <h4>saldo_pendiente se descuenta al cancelar pedido (crítico)</h4>
+      <p>Al cambiar el estado de un pedido a <code>cancelado</code>, ahora se hace <code>UPDATE clientes SET saldo_pendiente = saldo_pendiente - total</code> del pedido, evitando que el cliente quede con deuda ficticia. El saldo nunca queda por debajo de cero.</p>
+
+      <h4>saldo_pendiente se ajusta al editar un pedido (alto)</h4>
+      <p>En <code>guardarCambiosPedido()</code>, después de actualizar el pedido, se calcula la diferencia entre el nuevo total y el total original, y se aplica al <code>saldo_pendiente</code> del cliente: <code>saldo += (nuevoTotal - totalAnterior)</code>.</p>
+
+      <h4>Filtro "stock bajo" en Productos corregido (medio)</h4>
+      <p><code>query.filter('stock_actual', 'lte', 'stock_minimo')</code> es una comparación columna-a-columna que Supabase JS no soporta (trata <code>'stock_minimo'</code> como literal). Se reemplazó por una carga de todos los productos con <code>stock_minimo &gt; 0</code> sin <code>.range()</code>, filtrado client-side por <code>stock_actual &lt;= stock_minimo</code>, con paginación también client-side. El mismo bug existía en el CSV export y fue corregido de la misma manera.</p>
+
+      <h4>Búsqueda por nombre de cliente en Pedidos (medio)</h4>
+      <p>El buscador de pedidos solo aceptaba número de pedido exacto (<code>parseInt(search)</code>). Si el usuario escribía texto (nombre de cliente), no filtraba nada. Se añadió búsqueda de dos pasos: si el search no es un número, busca clientes con <code>nombre_establecimiento ilike %texto%</code> y luego filtra pedidos con <code>.in('cliente_id', ids)</code>.</p>
+
+      <h4>Dashboard: link "Ver todos los cobros" corregido (medio)</h4>
+      <p>El widget de cobros del dashboard tenía un link a <code>#/cobros</code>, ruta no registrada en el router. Se corrigió a <code>#/clientes</code> (donde los cobros son visibles por cliente en la ficha).</p>
+
+      <h4>metodo_pago pre-llenado desde el cliente al crear pedido (bajo)</h4>
+      <p>Al seleccionar un cliente en el modal de nuevo pedido, el select de "Método de pago" se pre-llena automáticamente con el <code>metodo_pago_preferido</code> del cliente. Se agregó la columna al <code>SELECT</code> de <code>loadClientes()</code> y un <code>data-metodo</code> en cada opción del select.</p>
+
+      <h4>Bulk price update registra historial_precios (bajo)</h4>
+      <p>La actualización masiva de precios en Productos ya guardaba los cambios en <code>productos</code>, pero no dejaba rastro en <code>historial_precios</code>. Ahora, después del batch upsert, se inserta un registro por cada producto afectado con precio anterior, nuevo, motivo "Actualización masiva" y el usuario actual.</p>
+
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/pages/reportes.js</code> — <code>window.App.user</code> → <code>window.App.userProfile</code></li>
+        <li><code>js/pages/configuracion.js</code> — <code>window.App.user</code> → <code>window.App.userProfile</code> (3 lugares), incluyendo <code>created_by</code> en invitaciones</li>
+        <li><code>js/pages/pedidos.js</code> — saldo al cancelar, saldo al editar, búsqueda por cliente, metodo_pago pre-llenado</li>
+        <li><code>js/pages/productos.js</code> — filtro stock bajo reescrito, bulk update con historial</li>
+        <li><code>js/pages/dashboard.js</code> — link cobros corregido</li>
+      </ul>
+
+      <hr>
+
       <h3>Sesión 13 — Bugs &amp; Correcciones (GAPS III)</h3>
 
       <h4>Lista de precios del cliente aplicada en pedidos</h4>

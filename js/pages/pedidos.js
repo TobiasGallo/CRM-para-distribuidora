@@ -165,6 +165,19 @@ const PedidosPage = {
         const num = parseInt(this.filters.search);
         if (!isNaN(num)) {
           query = query.eq('numero_pedido', num);
+        } else {
+          // Buscar por nombre de cliente (two-step: traer IDs de clientes que coincidan)
+          const { data: clienteMatch } = await supabase
+            .from('clientes')
+            .select('id')
+            .ilike('nombre_establecimiento', `%${this.filters.search}%`);
+          const ids = (clienteMatch || []).map(c => c.id);
+          if (ids.length > 0) {
+            query = query.in('cliente_id', ids);
+          } else {
+            // Sin coincidencias: no traer resultados
+            query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+          }
         }
       }
       // Filtros avanzados
@@ -206,7 +219,7 @@ const PedidosPage = {
     try {
       const { data } = await supabase
         .from('clientes')
-        .select('id, nombre_establecimiento, lista_precios_id, saldo_pendiente, linea_credito, dias_credito')
+        .select('id, nombre_establecimiento, lista_precios_id, saldo_pendiente, linea_credito, dias_credito, metodo_pago_preferido')
         .in('estado_lead', ['activo', 'negociacion', 'prospecto'])
         .order('nombre_establecimiento');
       this.clientes = data || [];
@@ -612,7 +625,7 @@ const PedidosPage = {
                     <label class="form-label">Cliente *</label>
                     <select class="form-input" name="cliente_id" id="selectClientePedido" required>
                       <option value="">Seleccionar cliente...</option>
-                      ${this.clientes.map(c => `<option value="${c.id}" data-lista="${c.lista_precios_id || ''}" data-saldo="${c.saldo_pendiente || 0}" data-linea="${c.linea_credito || 0}" data-dias="${c.dias_credito || 0}">${this.esc(c.nombre_establecimiento)}</option>`).join('')}
+                      ${this.clientes.map(c => `<option value="${c.id}" data-lista="${c.lista_precios_id || ''}" data-saldo="${c.saldo_pendiente || 0}" data-linea="${c.linea_credito || 0}" data-dias="${c.dias_credito || 0}" data-metodo="${c.metodo_pago_preferido || ''}">${this.esc(c.nombre_establecimiento)}</option>`).join('')}
                     </select>
                     <div id="creditoInfoBox" style="display:none;margin-top:0.4rem;"></div>
                   </div>
@@ -709,6 +722,10 @@ const PedidosPage = {
       this.updateTotal();
       const clienteId = e.target.value;
       const listaId = opt?.dataset.lista || '';
+      // Pre-llenar método de pago preferido del cliente
+      const metodoPago = opt?.dataset.metodo || '';
+      const selectMetodo = document.querySelector('[name="metodo_pago"]');
+      if (selectMetodo && metodoPago) selectMetodo.value = metodoPago;
       // Cargar precios de la lista del cliente (y productos frecuentes)
       this.preciosLista = {};
       if (clienteId) {
@@ -1222,6 +1239,14 @@ const PedidosPage = {
             .eq('id', pedido.cliente_id);
         }
 
+        // Al cancelar: descontar saldo_pendiente del cliente (nunca por debajo de 0)
+        if (nuevoEstado === 'cancelado' && pedido.cliente_id && Number(pedido.total) > 0) {
+          const { data: cd } = await supabase
+            .from('clientes').select('saldo_pendiente').eq('id', pedido.cliente_id).single();
+          const nuevoSaldo = Math.max(0, Number(cd?.saldo_pendiente || 0) - Number(pedido.total));
+          await supabase.from('clientes').update({ saldo_pendiente: nuevoSaldo }).eq('id', pedido.cliente_id);
+        }
+
         Toast.success(`Estado cambiado a: ${this.estadoLabel(nuevoEstado)}`);
         pedido.estado = nuevoEstado;
 
@@ -1613,6 +1638,16 @@ const PedidosPage = {
         .from('productos_pedido')
         .insert(nuevasLineas);
       if (errInsert) throw errInsert;
+
+      // 3. Ajustar saldo_pendiente del cliente por la diferencia de totales
+      const totalAnterior = Number(pedido.total || 0);
+      const diff = nuevoTotal - totalAnterior;
+      if (pedido.cliente_id && diff !== 0) {
+        const { data: cd } = await supabase
+          .from('clientes').select('saldo_pendiente').eq('id', pedido.cliente_id).single();
+        const nuevoSaldo = Math.max(0, Number(cd?.saldo_pendiente || 0) + diff);
+        await supabase.from('clientes').update({ saldo_pendiente: nuevoSaldo }).eq('id', pedido.cliente_id);
+      }
 
       Toast.success('Pedido actualizado');
       this.closeModal();

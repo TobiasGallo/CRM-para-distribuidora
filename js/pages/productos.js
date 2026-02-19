@@ -147,6 +147,31 @@ const ProductosPage = {
   async loadProductos() {
     sessionStorage.setItem('crm_filters_productos', JSON.stringify(this.filters));
     try {
+      // El filtro "bajo" requiere comparación columna-a-columna (stock_actual <= stock_minimo)
+      // que Supabase JS no soporta vía cliente. Se carga todo con stock_minimo > 0
+      // y se filtra client-side, con paginación también client-side.
+      if (this.filters.stock === 'bajo') {
+        let query = supabase.from('productos').select('*').gt('stock_minimo', 0);
+        if (this.filters.search) {
+          const s = `%${this.filters.search}%`;
+          query = query.or(`nombre.ilike.${s},sku.ilike.${s},categoria.ilike.${s},proveedor.ilike.${s}`);
+        }
+        if (this.filters.categoria) query = query.eq('categoria', this.filters.categoria);
+        if (this.filters.activo === 'true') query = query.eq('activo', true);
+        else if (this.filters.activo === 'false') query = query.eq('activo', false);
+        query = query.order(this.sortField, { ascending: this.sortAsc });
+        const { data, error } = await query;
+        if (error) throw error;
+        const todos = (data || []).filter(p => p.stock_actual <= p.stock_minimo);
+        this.totalCount = todos.length;
+        const from = this.currentPage * ITEMS_PER_PAGE;
+        this.productos = todos.slice(from, from + ITEMS_PER_PAGE);
+        this.renderTable();
+        this.renderPagination();
+        this.renderCount();
+        return;
+      }
+
       let query = supabase
         .from('productos')
         .select('*', { count: 'exact' });
@@ -158,9 +183,7 @@ const ProductosPage = {
       if (this.filters.categoria) {
         query = query.eq('categoria', this.filters.categoria);
       }
-      if (this.filters.stock === 'bajo') {
-        query = query.gt('stock_minimo', 0).filter('stock_actual', 'lte', 'stock_minimo');
-      } else if (this.filters.stock === 'sin') {
+      if (this.filters.stock === 'sin') {
         query = query.eq('stock_actual', 0);
       } else if (this.filters.stock === 'vencimiento') {
         const in30 = new Date();
@@ -563,19 +586,24 @@ const ProductosPage = {
         query = query.or(`nombre.ilike.${s},sku.ilike.${s},categoria.ilike.${s},proveedor.ilike.${s}`);
       }
       if (this.filters.categoria) query = query.eq('categoria', this.filters.categoria);
-      if (this.filters.stock === 'bajo') query = query.gt('stock_minimo', 0).lte('stock_actual', supabase.rpc ? 0 : 999999);
+      if (this.filters.stock === 'bajo') query = query.gt('stock_minimo', 0);
       if (this.filters.stock === 'sin') query = query.lte('stock_actual', 0);
 
       const { data, error } = await query.order('nombre');
       if (error) throw error;
 
-      if (!data || data.length === 0) {
+      // "bajo" requiere filtro client-side (comparación columna-a-columna no soportada en Supabase JS)
+      const rawData = this.filters.stock === 'bajo'
+        ? (data || []).filter(p => p.stock_actual <= p.stock_minimo)
+        : (data || []);
+
+      if (rawData.length === 0) {
         Toast.warning('No hay productos para exportar');
         return;
       }
 
       const moneda = window.App?.organization?.moneda || 'ARS';
-      CSV.export(data, [
+      CSV.export(rawData, [
         { key: 'sku', label: 'SKU' },
         { key: 'nombre', label: 'Nombre' },
         { key: 'categoria', label: 'Categoría' },
@@ -588,7 +616,7 @@ const ProductosPage = {
         { label: 'Estado', format: r => r.activo ? 'Activo' : 'Inactivo' },
       ], 'productos');
 
-      Toast.success(`${data.length} productos exportados`);
+      Toast.success(`${rawData.length} productos exportados`);
     } catch (err) {
       console.error('Error exportando CSV:', err);
       Toast.error('Error al exportar');
@@ -1148,6 +1176,27 @@ const ProductosPage = {
         const updates = prods.map(p => ({ id: p.id, precio_base: calcNuevo(p.precio_base) }));
         const { error: upsertErr } = await supabase.from('productos').upsert(updates);
         if (upsertErr) throw upsertErr;
+
+        // Registrar historial de precios para cada producto afectado
+        const orgId = window.App?.userProfile?.organizacion_id;
+        const userId = window.App?.userProfile?.id;
+        const historial = prods
+          .map(p => {
+            const nuevo = calcNuevo(p.precio_base);
+            if (nuevo === Number(p.precio_base)) return null;
+            return {
+              producto_id: p.id,
+              organizacion_id: orgId,
+              precio_anterior: Number(p.precio_base),
+              precio_nuevo: nuevo,
+              motivo: 'Actualización masiva',
+              usuario_id: userId,
+            };
+          })
+          .filter(Boolean);
+        if (historial.length > 0) {
+          await supabase.from('historial_precios').insert(historial);
+        }
 
         Toast.success(`${updates.length} producto${updates.length !== 1 ? 's' : ''} actualizado${updates.length !== 1 ? 's' : ''}`);
         container.remove();

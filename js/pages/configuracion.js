@@ -214,7 +214,7 @@ const ConfiguracionPage = {
         </form>
       </div>
 
-      ${['owner', 'admin'].includes(window.App?.user?.rol) ? `
+      ${['owner', 'admin'].includes(window.App?.userProfile?.rol) ? `
       <div class="config-section" style="margin-top:1.5rem;">
         <div class="form-section">
           <div class="form-section-title">Exportar datos</div>
@@ -582,7 +582,7 @@ const ConfiguracionPage = {
       const email = fd.get('email').trim().toLowerCase();
       const rol = fd.get('rol');
       const orgId = window.App?.organization?.id;
-      const userId = window.App?.user?.id;
+      const userId = window.App?.userProfile?.id;
       const errorDiv = document.getElementById('inviteError');
 
       const btn = document.getElementById('btnEnviarInvite');
@@ -1113,7 +1113,7 @@ const ConfiguracionPage = {
           .eq('id', user.id);
         if (error) throw error;
 
-        window.App.user = { ...window.App.user, nombre, telefono };
+        window.App.userProfile = { ...window.App.userProfile, nombre, telefono };
         // Actualizar nombre en sidebar
         const sidebarUser = document.querySelector('.sidebar-user-name');
         if (sidebarUser) sidebarUser.textContent = nombre;

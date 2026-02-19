@@ -1469,6 +1469,27 @@ const routes = Permissions.getVisibleRoutes(); // ['dashboard', 'clientes', ...]
 
 ---
 
+## 🔧 GAPS ADICIONALES IV (auditoría profunda — sesión 14)
+
+### 🔴 Críticos — features rotas silenciosamente
+
+- [x] **`window.App.user` no existe (siempre `undefined`)** — `app.js` setea `window.App.userProfile`, pero cuatro lugares leen `window.App?.user?.rol` / `window.App?.user?.id`. Efectos: (a) botón "Gestionar metas" en Reportes nunca aparece para nadie; (b) sección "Exportar datos" en Configuración nunca renderiza; (c) `created_by` en invitaciones se guarda como `undefined`. Fix: cambiar `.user.` → `.userProfile.` en `reportes.js:298`, `configuracion.js:217`, `configuracion.js:585`, `configuracion.js:1116`.
+- [x] **`saldo_pendiente` no se descuenta al cancelar pedido** — Cuando el estado cambia a `cancelado`, el total del pedido NO se resta del `saldo_pendiente` del cliente. Un pedido de $50.000 cancelado deja al cliente con $50.000 de deuda ficticia indefinidamente. Afecta: `pedidos.js` → `estadoSelector` click handler.
+- [x] **`saldo_pendiente` no se ajusta al editar un pedido** — `guardarCambiosPedido()` actualiza el total del pedido en BD pero nunca toca `clientes.saldo_pendiente`. Si se agrega o quita producto a un pedido existente, el saldo del cliente queda con el monto original. Afecta: `pedidos.js` → `guardarCambiosPedido()`.
+
+### 🟡 Importantes — datos incorrectos o UX bloqueada
+
+- [x] **Filtro "stock bajo" en Productos silenciosamente roto** — `query.filter('stock_actual', 'lte', 'stock_minimo')` pasa el string `'stock_minimo'` como valor literal (Supabase JS no soporta comparación columna-a-columna). El filtro no devuelve resultados correctos. El mismo bug existe en el CSV export. Fix: cargar todos los productos con `stock_minimo > 0` y filtrar client-side. Afecta: `productos.js` → `loadProductos()` y `exportCSV()`.
+- [x] **Búsqueda en Pedidos solo acepta número exacto** — `parseInt(search)` silencia cualquier búsqueda por nombre de cliente. Si el usuario escribe "garcia", no filtra nada. Fix: cuando el search no es número, buscar IDs de clientes con `nombre_establecimiento ilike %text%` y luego `.in('cliente_id', ids)`. Afecta: `pedidos.js` → `loadPedidos()`.
+- [x] **Dashboard: link "Ver todos los cobros" lleva a ruta no registrada** — El widget de cobros enlaza a `#/cobros` que no existe en el router. Hace crash silencioso (muestra pantalla en blanco). Fix: cambiar a `#/clientes`. Afecta: `dashboard.js`.
+
+### 🟢 Menores — mejoras de UX y auditoría
+
+- [x] **`metodo_pago` no se pre-llena desde el cliente** — Al seleccionar un cliente en el modal de nuevo pedido, el select de "Método de pago" queda en blanco incluso si el cliente tiene `metodo_pago_preferido`. Requiere agregar la columna al `loadClientes()` y el pre-llenado en el change handler. Afecta: `pedidos.js`.
+- [x] **Actualización masiva de precios no registra en `historial_precios`** — El bulk update guarda en `productos` pero no deja trazabilidad. Los cambios individuales sí se loguean. Fix: insertar en `historial_precios` por cada producto afectado con motivo "Actualización masiva". Afecta: `productos.js` → `openActualizarPreciosModal()`.
+
+---
+
 ## ❌ FASES PENDIENTES
 
 ### FASE 7 - Comunicación e Integraciones
