@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM Distribuidora</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/components/login.css" />
+  <link rel="stylesheet" href="css/components/sidebar.css" />
+  <link rel="stylesheet" href="css/components/navbar.css" />
+  <link rel="stylesheet" href="css/components/dashboard.css" />
+  <link rel="stylesheet" href="css/components/clientes.css" />
+  <link rel="stylesheet" href="css/components/productos.css" />
+  <link rel="stylesheet" href="css/components/pedidos.css" />
+  <link rel="stylesheet" href="css/components/pipeline.css" />
+  <link rel="stylesheet" href="css/components/logistica.css" />
+  <link rel="stylesheet" href="css/components/reportes.css" />
+  <link rel="stylesheet" href="css/components/configuracion.css" />
+
+  <!-- Supabase SDK (precarga) -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- jsPDF se carga bajo demanda desde pedidos.js -->
+</head>
+<body>
+  <div id="app">
+    <!-- Loader inicial -->
+    <div class="loader" style="min-height: 100vh;">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,2845 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Documentación - CRM Distribuidora</title>
+  <link rel="stylesheet" href="css/variables.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-family);
+      color: var(--gray-800);
+      background: var(--gray-50);
+      line-height: 1.7;
+    }
+
+    /* ====== LAYOUT ====== */
+    .docs-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ====== SIDEBAR NAV ====== */
+    .docs-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 280px;
+      height: 100vh;
+      background: white;
+      border-right: 1px solid var(--gray-200);
+      overflow-y: auto;
+      padding: 1.5rem 0;
+      z-index: 100;
+    }
+
+    .docs-sidebar-logo {
+      padding: 0 1.5rem 1.5rem;
+      border-bottom: 1px solid var(--gray-200);
+      margin-bottom: 1rem;
+    }
+
+    .docs-sidebar-logo h2 {
+      font-size: 1.1rem;
+      color: var(--gray-900);
+    }
+
+    .docs-sidebar-logo span {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      display: block;
+      margin-top: 2px;
+    }
+
+    .docs-nav-section {
+      padding: 0.5rem 1.5rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gray-400);
+      font-weight: 600;
+      margin-top: 1rem;
+    }
+
+    .docs-nav-link {
+      display: block;
+      padding: 0.4rem 1.5rem;
+      color: var(--gray-600);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: all 150ms;
+      border-left: 3px solid transparent;
+    }
+
+    .docs-nav-link:hover {
+      color: var(--primary);
+      background: var(--primary-light);
+      border-left-color: var(--primary);
+    }
+
+    .docs-nav-link.sub {
+      padding-left: 2.5rem;
+      font-size: 0.8rem;
+      color: var(--gray-500);
+    }
+
+    /* ====== CONTENIDO ====== */
+    .docs-content {
+      margin-left: 280px;
+      flex: 1;
+      max-width: 900px;
+      padding: 3rem 3rem 6rem;
+    }
+
+    /* ====== TIPOGRAFÍA ====== */
+    h1 {
+      font-size: 2rem;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--primary);
+    }
+
+    h1 + p { color: var(--gray-500); margin-bottom: 2.5rem; }
+
+    h2 {
+      font-size: 1.5rem;
+      color: var(--gray-900);
+      margin: 3rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    h3 {
+      font-size: 1.15rem;
+      color: var(--gray-800);
+      margin: 2rem 0 0.75rem;
+    }
+
+    h4 {
+      font-size: 1rem;
+      color: var(--gray-700);
+      margin: 1.5rem 0 0.5rem;
+    }
+
+    p { margin-bottom: 1rem; }
+
+    a { color: var(--primary); }
+
+    /* ====== CÓDIGO ====== */
+    code {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85em;
+      background: var(--gray-100);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      color: var(--danger);
+    }
+
+    pre {
+      background: var(--gray-900);
+      color: #e5e7eb;
+      padding: 1.25rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    .code-filename {
+      background: var(--gray-800);
+      color: var(--gray-400);
+      padding: 0.4rem 1.25rem;
+      border-radius: 8px 8px 0 0;
+      font-size: 0.75rem;
+      font-family: 'Fira Code', monospace;
+      margin-bottom: -1rem;
+      margin-top: 1rem;
+    }
+
+    .code-filename + pre {
+      border-radius: 0 0 8px 8px;
+      margin-top: 0;
+    }
+
+    /* ====== TABLAS ====== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.875rem;
+    }
+
+    th {
+      background: var(--gray-100);
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      color: var(--gray-700);
+      border-bottom: 2px solid var(--gray-200);
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--gray-100);
+      vertical-align: top;
+    }
+
+    tr:hover td { background: var(--gray-50); }
+
+    /* ====== CARDS / CAJAS ====== */
+    .doc-card {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin: 1rem 0;
+    }
+
+    .doc-card h4 { margin-top: 0; }
+
+    .info-box {
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+
+    .info-box.tip {
+      background: #ecfdf5;
+      border-left: 4px solid var(--success);
+      color: #065f46;
+    }
+
+    .info-box.warning {
+      background: #fffbeb;
+      border-left: 4px solid var(--warning);
+      color: #92400e;
+    }
+
+    .info-box.danger {
+      background: #fef2f2;
+      border-left: 4px solid var(--danger);
+      color: #991b1b;
+    }
+
+    .info-box.info {
+      background: #eff6ff;
+      border-left: 4px solid var(--primary);
+      color: #1e40af;
+    }
+
+    .info-box strong { display: block; margin-bottom: 0.25rem; }
+
+    /* ====== TREE (estructura de archivos) ====== */
+    .file-tree {
+      background: var(--gray-900);
+      color: #e5e7eb;
+      padding: 1.25rem;
+      border-radius: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      line-height: 1.8;
+      margin: 1rem 0;
+    }
+
+    .file-tree .folder { color: #60a5fa; }
+    .file-tree .file { color: #a5b4fc; }
+    .file-tree .comment { color: #6b7280; }
+
+    /* ====== BADGES ====== */
+    .doc-badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+
+    .doc-badge.green { background: var(--success-light); color: var(--success); }
+    .doc-badge.blue { background: var(--primary-light); color: var(--primary); }
+    .doc-badge.yellow { background: var(--warning-light); color: var(--warning); }
+    .doc-badge.red { background: var(--danger-light); color: var(--danger); }
+
+    /* ====== DIAGRAMA DE TABLAS ====== */
+    .er-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .er-card {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .er-card-header {
+      background: var(--gray-900);
+      color: white;
+      padding: 0.5rem 1rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .er-card-body {
+      padding: 0.5rem 0;
+    }
+
+    .er-field {
+      padding: 0.2rem 1rem;
+      font-size: 0.78rem;
+      font-family: 'Fira Code', monospace;
+      color: var(--gray-700);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .er-field:hover { background: var(--gray-50); }
+
+    .er-type {
+      color: var(--gray-400);
+      font-size: 0.7rem;
+    }
+
+    .er-pk { color: var(--warning); font-weight: 600; }
+    .er-fk { color: var(--primary); }
+
+    /* ====== STEPS ====== */
+    .steps {
+      counter-reset: step;
+      margin: 1.5rem 0;
+    }
+
+    .step {
+      counter-increment: step;
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      align-items: flex-start;
+    }
+
+    .step::before {
+      content: counter(step);
+      background: var(--primary);
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .step-content { flex: 1; }
+    .step-content h4 { margin-top: 0.2rem; }
+
+    /* ====== RESPONSIVE ====== */
+    @media (max-width: 900px) {
+      .docs-sidebar { display: none; }
+      .docs-content { margin-left: 0; padding: 1.5rem; }
+    }
+
+    /* ====== SCROLL SUAVE A SECCIONES ====== */
+    [id] { scroll-margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="docs-layout">
+
+    <!-- SIDEBAR -->
+    <nav class="docs-sidebar">
+      <div class="docs-sidebar-logo">
+        <h2>CRM Distribuidora</h2>
+        <span>Documentación del proyecto</span>
+      </div>
+
+      <div class="docs-nav-section">Inicio</div>
+      <a href="#resumen" class="docs-nav-link">Resumen del proyecto</a>
+      <a href="#multi-tenant" class="docs-nav-link">Arquitectura Multi-Tenant</a>
+      <a href="#stack" class="docs-nav-link">Stack tecnológico</a>
+
+      <div class="docs-nav-section">Estructura</div>
+      <a href="#archivos" class="docs-nav-link">Estructura de archivos</a>
+      <a href="#css" class="docs-nav-link sub">CSS y estilos</a>
+      <a href="#js" class="docs-nav-link sub">JavaScript y módulos</a>
+      <a href="#routing" class="docs-nav-link sub">Sistema de routing</a>
+
+      <div class="docs-nav-section">Supabase</div>
+      <a href="#supabase-setup" class="docs-nav-link">Configuración inicial</a>
+      <a href="#tablas" class="docs-nav-link">Tablas de la base de datos</a>
+      <a href="#rls" class="docs-nav-link">Permisos y RLS</a>
+      <a href="#auth" class="docs-nav-link">Autenticación</a>
+
+      <div class="docs-nav-section">Módulos</div>
+      <a href="#mod-auth" class="docs-nav-link">Auth (login/logout)</a>
+      <a href="#mod-sidebar" class="docs-nav-link">Sidebar</a>
+      <a href="#mod-navbar" class="docs-nav-link">Navbar</a>
+      <a href="#mod-dashboard" class="docs-nav-link">Dashboard</a>
+      <a href="#mod-clientes" class="docs-nav-link">Clientes (CRUD)</a>
+      <a href="#mod-productos" class="docs-nav-link">Productos (CRUD)</a>
+      <a href="#mod-pedidos" class="docs-nav-link">Pedidos (CRUD + PDF)</a>
+      <a href="#mod-pipeline" class="docs-nav-link">Pipeline Kanban</a>
+      <a href="#mod-logistica" class="docs-nav-link">Logística y Rutas</a>
+      <a href="#mod-reportes" class="docs-nav-link">Reportes (6 tabs)</a>
+      <a href="#mod-configuracion" class="docs-nav-link">Configuración</a>
+      <a href="#mod-toast" class="docs-nav-link">Toasts</a>
+
+      <div class="docs-nav-section">Funcionalidades</div>
+      <a href="#permisos" class="docs-nav-link">Sistema de permisos</a>
+      <a href="#notificaciones" class="docs-nav-link">Notificaciones in-app</a>
+      <a href="#csv-export" class="docs-nav-link">Exportación CSV</a>
+      <a href="#validaciones" class="docs-nav-link">Validaciones inline</a>
+      <a href="#busqueda-global" class="docs-nav-link">Búsqueda global</a>
+      <a href="#filtros-avanzados" class="docs-nav-link">Filtros avanzados</a>
+      <a href="#sort-tablas" class="docs-nav-link">Ordenamiento de tablas</a>
+      <a href="#pdf-reportes" class="docs-nav-link">PDF en Reportes</a>
+      <a href="#error-handler" class="docs-nav-link">Manejo de errores</a>
+      <a href="#onboarding" class="docs-nav-link">Onboarding</a>
+
+      <div class="docs-nav-section">Guías</div>
+      <a href="#agregar-pagina" class="docs-nav-link">Agregar una nueva página</a>
+      <a href="#roles" class="docs-nav-link">Roles y permisos</a>
+      <a href="#changelog" class="docs-nav-link">Changelog / Historial</a>
+      <a href="#roadmap" class="docs-nav-link">Roadmap de desarrollo</a>
+      <a href="#costos" class="docs-nav-link">Costos estimados</a>
+    </nav>
+
+    <!-- CONTENIDO -->
+    <main class="docs-content">
+
+      <!-- ==================== RESUMEN ==================== -->
+      <h1 id="resumen">CRM Distribuidora - Documentación</h1>
+      <p>Documentación completa del sistema CRM para distribuidora de alimentos.</p>
+
+      <p>
+        Sistema diseñado para gestionar ventas, logística de entregas, control financiero y
+        comunicación multicanal con clientes del sector HORECA (hoteles, restaurantes, cafeterías),
+        supermercados y tiendas minoristas.
+      </p>
+
+      <div class="info-box tip">
+        <strong>Producto SaaS Multi-Tenant</strong>
+        Este CRM está diseñado para venderse a múltiples distribuidoras. Cada cliente (organización)
+        tiene sus propios datos, branding y usuarios, todo dentro de una misma base de datos.
+      </div>
+
+      <!-- ==================== MULTI-TENANT ==================== -->
+      <h2 id="multi-tenant">Arquitectura Multi-Tenant</h2>
+
+      <p>
+        El sistema usa una <strong>arquitectura multi-tenant con base de datos compartida</strong>.
+        Esto significa que todas las distribuidoras que usen el CRM comparten la misma base de datos
+        y la misma aplicación, pero cada una solo ve sus propios datos.
+      </p>
+
+      <h3>¿Cómo funciona?</h3>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Tabla <code>organizaciones</code></h4>
+            <p>Cada distribuidora que compra el CRM se registra como una <strong>organización</strong>.
+            Esta tabla guarda su nombre, logo, colores, configuración y plan de suscripción.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-content">
+            <h4>Campo <code>organizacion_id</code> en todas las tablas</h4>
+            <p>Cada registro (cliente, producto, pedido, etc.) tiene un campo <code>organizacion_id</code>
+            que indica a qué distribuidora pertenece. Esto es la clave del aislamiento de datos.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-content">
+            <h4>RLS filtra automáticamente</h4>
+            <p>PostgreSQL Row Level Security se encarga de que cada usuario solo vea datos de su organización.
+            No hay forma de acceder a datos de otra org, ni siquiera manipulando la API.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-content">
+            <h4>Branding dinámico</h4>
+            <p>Al hacer login, la app carga los datos de la organización (nombre, logo, colores) y
+            los aplica sobre las CSS variables. Cada distribuidora ve "su" CRM personalizado.</p>
+          </div>
+        </div>
+      </div>
+
+      <h3>Tabla organizaciones</h3>
+      <div class="er-card" style="max-width: 450px;">
+        <div class="er-card-header">organizaciones</div>
+        <div class="er-card-body">
+          <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+          <div class="er-field">nombre <span class="er-type">TEXT - "Distribuidora López"</span></div>
+          <div class="er-field">slug <span class="er-type">TEXT UNIQUE - "dist-lopez-a3f2"</span></div>
+          <div class="er-field">logo_url <span class="er-type">TEXT</span></div>
+          <div class="er-field">color_primario <span class="er-type">TEXT - "#2563eb"</span></div>
+          <div class="er-field">color_secundario <span class="er-type">TEXT - "#1e40af"</span></div>
+          <div class="er-field">razon_social <span class="er-type">TEXT</span></div>
+          <div class="er-field">cuit <span class="er-type">TEXT</span></div>
+          <div class="er-field">moneda <span class="er-type">TEXT - "ARS"</span></div>
+          <div class="er-field">zona_horaria <span class="er-type">TEXT</span></div>
+          <div class="er-field">config <span class="er-type">JSONB - configuración flexible</span></div>
+          <div class="er-field">plan <span class="er-type">TEXT - free/pro/enterprise</span></div>
+          <div class="er-field">max_usuarios <span class="er-type">INTEGER - 5</span></div>
+          <div class="er-field">activa <span class="er-type">BOOLEAN</span></div>
+        </div>
+      </div>
+
+      <h3>Flujo de registro</h3>
+<pre><code>REGISTRO DE NUEVA DISTRIBUIDORA (owner):
+  1. Usuario se registra con metadata: { nombre_organizacion: "Dist. López" }
+  2. Trigger automático crea la organización en la tabla
+  3. Trigger crea el usuario con rol "owner"
+  4. Trigger crea listas de precios por defecto (Tarifa A/B/C)
+  5. El owner ya puede loguearse y empezar a cargar datos
+
+INVITAR USUARIO A UNA ORG EXISTENTE:
+  1. Owner crea usuario con metadata: { organizacion_id: "uuid-de-la-org", rol: "vendedor" }
+  2. Trigger detecta el organizacion_id y lo asigna a esa org
+  3. El nuevo usuario entra y ve los datos de la organización</code></pre>
+
+      <h3>Branding dinámico</h3>
+      <p>Cuando un usuario hace login, <code>app.js</code> ejecuta <code>applyBranding()</code>:</p>
+<pre><code>// Se cargan los colores de la organización y se aplican al CSS
+applyBranding() {
+  const root = document.documentElement;
+  root.style.setProperty('--primary', org.color_primario);      // "#e11d48"
+  root.style.setProperty('--primary-hover', org.color_secundario); // "#be123c"
+  document.title = `CRM - ${org.nombre}`;                       // "CRM - Distribuidora López"
+}
+
+// El sidebar muestra el nombre y logo de la org en vez de "CRM Distribuidora"
+Sidebar.render(userProfile, organization);</code></pre>
+
+      <div class="info-box info">
+        <strong>Ventaja clave</strong>
+        Con un solo deploy y una sola base de datos servís a todos los clientes.
+        Costo: ~$25/mes de Supabase para TODOS, no por cliente.
+      </div>
+
+      <!-- ==================== STACK ==================== -->
+      <h2 id="stack">Stack Tecnológico</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Capa</th>
+            <th>Tecnología</th>
+            <th>Propósito</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="doc-badge blue">Frontend</span></td>
+            <td>HTML + CSS + JavaScript vanilla</td>
+            <td>Interfaz de usuario, sin frameworks</td>
+          </tr>
+          <tr>
+            <td><span class="doc-badge green">Backend</span></td>
+            <td>Supabase (PostgreSQL)</td>
+            <td>Base de datos, Auth, Storage, Realtime, API REST</td>
+          </tr>
+          <tr>
+            <td><span class="doc-badge yellow">Drag & Drop</span></td>
+            <td>SortableJS</td>
+            <td>Pipeline Kanban (próximamente)</td>
+          </tr>
+          <tr>
+            <td><span class="doc-badge yellow">Gráficos</span></td>
+            <td>Chart.js</td>
+            <td>Dashboard y reportes (próximamente)</td>
+          </tr>
+          <tr>
+            <td><span class="doc-badge yellow">PDFs</span></td>
+            <td>jsPDF</td>
+            <td>Generación de presupuestos y pedidos</td>
+          </tr>
+          <tr>
+            <td><span class="doc-badge yellow">Mapas</span></td>
+            <td>Leaflet / Google Maps</td>
+            <td>Rutas y geolocalización</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Integraciones futuras</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Servicio</th>
+            <th>Uso</th>
+            <th>Fase</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Twilio</td><td>WhatsApp + Telefonía</td><td>Fase 7</td></tr>
+          <tr><td>SendGrid</td><td>Email con tracking</td><td>Fase 7</td></tr>
+          <tr><td>Firebase Cloud Messaging</td><td>Notificaciones push</td><td>Fase 7</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ==================== ESTRUCTURA ==================== -->
+      <h2 id="archivos">Estructura de Archivos</h2>
+
+      <div class="file-tree">
+        <span class="folder">CRM Alex/</span><br>
+        ├── <span class="file">index.html</span> <span class="comment">.............. Punto de entrada de la app</span><br>
+        ├── <span class="file">docs.html</span> <span class="comment">............... Esta documentación</span><br>
+        ├── <span class="folder">css/</span><br>
+        │   ├── <span class="file">variables.css</span> <span class="comment">......... Colores, fuentes, espaciado</span><br>
+        │   ├── <span class="file">styles.css</span> <span class="comment">............ Reset, layout, utilidades, validaciones</span><br>
+        │   └── <span class="folder">components/</span><br>
+        │       ├── <span class="file">login.css</span> <span class="comment">........... Pantalla de login</span><br>
+        │       ├── <span class="file">sidebar.css</span> <span class="comment">......... Menú lateral dinámico por rol</span><br>
+        │       ├── <span class="file">navbar.css</span> <span class="comment">.......... Barra superior + notificaciones</span><br>
+        │       ├── <span class="file">dashboard.css</span> <span class="comment">....... Dashboard stats + gráficos</span><br>
+        │       ├── <span class="file">clientes.css</span> <span class="comment">........ Listado, filtros, tabla, ficha</span><br>
+        │       ├── <span class="file">productos.css</span> <span class="comment">....... Listado, filtros, tabla, modal</span><br>
+        │       ├── <span class="file">pedidos.css</span> <span class="comment">......... Listado, detalle, PDF</span><br>
+        │       ├── <span class="file">pipeline.css</span> <span class="comment">........ Kanban board drag &amp; drop</span><br>
+        │       ├── <span class="file">logistica.css</span> <span class="comment">....... Rutas, mapa, paradas</span><br>
+        │       ├── <span class="file">reportes.css</span> <span class="comment">........ 6 tabs de reportes</span><br>
+        │       └── <span class="file">configuracion.css</span> <span class="comment">... Config: org, usuarios, listas</span><br>
+        ├── <span class="folder">js/</span><br>
+        │   ├── <span class="file">app.js</span> <span class="comment">................ Orquestador, routing, branding</span><br>
+        │   ├── <span class="folder">config/</span><br>
+        │   │   └── <span class="file">supabase.js</span> <span class="comment">......... Conexión a Supabase</span><br>
+        │   ├── <span class="folder">auth/</span><br>
+        │   │   └── <span class="file">auth.js</span> <span class="comment">............. Login, logout, sesión, caché</span><br>
+        │   ├── <span class="folder">components/</span><br>
+        │   │   ├── <span class="file">sidebar.js</span> <span class="comment">.......... Sidebar dinámico por permisos</span><br>
+        │   │   └── <span class="file">navbar.js</span> <span class="comment">........... Navbar + campana notificaciones</span><br>
+        │   ├── <span class="folder">pages/</span><br>
+        │   │   ├── <span class="file">login.js</span> <span class="comment">............ Página de login</span><br>
+        │   │   ├── <span class="file">dashboard.js</span> <span class="comment">........ KPIs, gráficos, rankings, alertas</span><br>
+        │   │   ├── <span class="file">clientes.js</span> <span class="comment">......... CRUD + ficha + semáforo + CSV</span><br>
+        │   │   ├── <span class="file">productos.js</span> <span class="comment">........ CRUD + stock + precios lista + CSV</span><br>
+        │   │   ├── <span class="file">pedidos.js</span> <span class="comment">.......... CRUD + estados + PDF + CSV</span><br>
+        │   │   ├── <span class="file">pipeline.js</span> <span class="comment">......... Kanban drag&amp;drop SortableJS</span><br>
+        │   │   ├── <span class="file">logistica.js</span> <span class="comment">........ Rutas + mapa Leaflet + paradas</span><br>
+        │   │   ├── <span class="file">reportes.js</span> <span class="comment">......... 6 tabs de reportes con Chart.js</span><br>
+        │   │   └── <span class="file">configuracion.js</span> <span class="comment">.... Org + usuarios + listas precios</span><br>
+        │   └── <span class="folder">utils/</span><br>
+        │       ├── <span class="file">router.js</span> <span class="comment">........... SPA routing por hash</span><br>
+        │       ├── <span class="file">toast.js</span> <span class="comment">............ Notificaciones toast</span><br>
+        │       ├── <span class="file">permissions.js</span> <span class="comment">...... Sistema de permisos por rol</span><br>
+        │       ├── <span class="file">notifications.js</span> <span class="comment">.... Campana + panel notificaciones</span><br>
+        │       ├── <span class="file">csv.js</span> <span class="comment">.............. Exportación CSV de listados</span><br>
+        │       └── <span class="file">validate.js</span> <span class="comment">......... Validaciones inline formularios</span><br>
+        └── <span class="folder">supabase/</span><br>
+        &nbsp;   ├── <span class="file">01_tablas.sql</span> <span class="comment">....... Todas las tablas + índices</span><br>
+        &nbsp;   ├── <span class="file">02_rls_policies.sql</span> <span class="comment">. Permisos por rol</span><br>
+        &nbsp;   └── <span class="file">03_trigger_nuevo_usuario.sql</span> <span class="comment"> Auto-crear perfil</span><br>
+      </div>
+
+      <!-- CSS -->
+      <h3 id="css">CSS y Estilos</h3>
+      <p>Los estilos están organizados en archivos separados por responsabilidad:</p>
+
+      <div class="doc-card">
+        <h4><code>variables.css</code> - Variables globales</h4>
+        <p>Define todas las variables CSS usadas en el proyecto: colores, tipografía, espaciado, bordes, sombras y transiciones. Cambiar un color acá lo cambia en toda la app.</p>
+      </div>
+
+      <div class="doc-card">
+        <h4><code>styles.css</code> - Base y utilidades</h4>
+        <p>Incluye el reset CSS, layout principal (<code>.app-container</code>, <code>.main-wrapper</code>), clases de utilidad (<code>.hidden</code>, <code>.text-muted</code>), componentes genéricos (<code>.btn</code>, <code>.card</code>, <code>.badge</code>, <code>.form-input</code>), y sistema de toasts animados.</p>
+      </div>
+
+      <div class="doc-card">
+        <h4><code>components/*.css</code> - Estilos por componente</h4>
+        <p>Cada componente visual tiene su propio archivo: login, sidebar, navbar, dashboard. Al agregar una nueva página, crear su CSS en esta carpeta.</p>
+      </div>
+
+      <!-- JS -->
+      <h3 id="js">JavaScript y Módulos</h3>
+      <p>El proyecto usa <strong>ES Modules</strong> nativos del navegador (<code>import/export</code>). Cada archivo tiene una responsabilidad única.</p>
+
+      <div class="info-box info">
+        <strong>Patrón de módulos</strong>
+        Cada módulo exporta un objeto con métodos. Los componentes visuales tienen <code>render()</code> para generar HTML
+        e <code>initEvents()</code> para vincular los eventos del DOM.
+      </div>
+
+      <div class="code-filename">js/app.js - Flujo principal</div>
+<pre><code>App.init()
+  ├── ¿Hay sesión? → Auth.getSession()
+  │   ├── SÍ → loadApp()
+  │   │   ├── Obtener perfil del usuario
+  │   │   ├── Renderizar Sidebar + Navbar
+  │   │   ├── Registrar rutas en Router
+  │   │   └── Iniciar Router
+  │   └── NO → showLogin()
+  │       └── Renderizar LoginPage
+  └── Escuchar auth state changes</code></pre>
+
+      <!-- ROUTING -->
+      <h3 id="routing">Sistema de Routing (SPA)</h3>
+      <p>La navegación se maneja con <strong>hash routing</strong> sin recargar la página.</p>
+
+      <table>
+        <thead>
+          <tr><th>URL</th><th>Página</th><th>Estado</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>#/dashboard</code></td><td>Dashboard</td><td><span class="doc-badge green">Activo</span></td></tr>
+          <tr><td><code>#/clientes</code></td><td>Clientes</td><td><span class="doc-badge green">Activo</span></td></tr>
+          <tr><td><code>#/productos</code></td><td>Productos</td><td><span class="doc-badge green">Activo</span></td></tr>
+          <tr><td><code>#/pedidos</code></td><td>Pedidos</td><td><span class="doc-badge green">Activo</span></td></tr>
+          <tr><td><code>#/pipeline</code></td><td>Pipeline Kanban</td><td><span class="doc-badge green">Activo</span></td></tr>
+          <tr><td><code>#/rutas</code></td><td>Logística y Rutas</td><td><span class="doc-badge green">Activo</span></td></tr>
+          <tr><td><code>#/reportes</code></td><td>Reportes</td><td><span class="doc-badge green">Activo</span></td></tr>
+          <tr><td><code>#/configuracion</code></td><td>Configuración</td><td><span class="doc-badge green">Activo</span></td></tr>
+        </tbody>
+      </table>
+
+      <p>Al hacer click en el sidebar, cambia el hash → el Router detecta el cambio → carga la página correspondiente dentro de <code>#pageContent</code>.</p>
+
+      <!-- ==================== SUPABASE ==================== -->
+      <h2 id="supabase-setup">Configuración de Supabase</h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Crear proyecto en Supabase</h4>
+            <p>Ir a <a href="https://supabase.com" target="_blank">supabase.com</a>, crear una cuenta y un nuevo proyecto. Elegir la región más cercana y anotar la contraseña de la base de datos.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-content">
+            <h4>Ejecutar los scripts SQL</h4>
+            <p>Ir a <strong>SQL Editor</strong> en el panel de Supabase y ejecutar los 3 archivos en orden:</p>
+<pre><code>1. supabase/01_tablas.sql         → Crea 11 tablas + índices + triggers
+2. supabase/02_rls_policies.sql   → Configura permisos por rol
+3. supabase/03_trigger_nuevo_usuario.sql → Auto-perfil + datos iniciales</code></pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-content">
+            <h4>Copiar credenciales</h4>
+            <p>Ir a <strong>Settings → API</strong> y copiar:</p>
+            <ul style="margin: 0.5rem 0 0.5rem 1.5rem; list-style: disc;">
+              <li><strong>Project URL</strong> → <code>SUPABASE_URL</code></li>
+              <li><strong>anon/public key</strong> → <code>SUPABASE_ANON_KEY</code></li>
+            </ul>
+            <p>Pegarlas en <code>js/config/supabase.js</code>:</p>
+            <div class="code-filename">js/config/supabase.js</div>
+<pre><code>const SUPABASE_URL = 'https://xxxxx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGci...';</code></pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-content">
+            <h4>Crear primer usuario (admin)</h4>
+            <p>Ir a <strong>Authentication → Users → Add User</strong>:</p>
+            <ul style="margin: 0.5rem 0 0.5rem 1.5rem; list-style: disc;">
+              <li>Email: tu email</li>
+              <li>Password: tu contraseña</li>
+              <li>Auto Confirm: activado</li>
+            </ul>
+            <p>Luego ir a <strong>SQL Editor</strong> y actualizar su rol:</p>
+<pre><code>UPDATE public.usuarios
+SET nombre = 'Tu Nombre', rol = 'admin'
+WHERE email = 'tu@email.com';</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box warning">
+        <strong>Importante sobre las keys</strong>
+        La <code>anon key</code> es pública y se puede exponer en el frontend. La seguridad la maneja RLS
+        (Row Level Security) en la base de datos. NUNCA expongas la <code>service_role key</code>.
+      </div>
+
+      <!-- ==================== TABLAS ==================== -->
+      <h2 id="tablas">Tablas de la Base de Datos</h2>
+      <p>El sistema tiene <strong>19 tablas</strong> con relaciones entre ellas. Todas las tablas tienen <code>organizacion_id</code> para el aislamiento multi-tenant.</p>
+
+      <div class="er-grid">
+        <div class="er-card">
+          <div class="er-card-header" style="background: var(--primary);">organizaciones (MULTI-TENANT)</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field">nombre <span class="er-type">TEXT</span></div>
+            <div class="er-field">slug <span class="er-type">TEXT UNIQUE</span></div>
+            <div class="er-field">logo_url, favicon_url <span class="er-type">TEXT</span></div>
+            <div class="er-field">color_primario/secundario <span class="er-type">TEXT</span></div>
+            <div class="er-field">razon_social, cuit <span class="er-type">TEXT</span></div>
+            <div class="er-field">moneda <span class="er-type">TEXT "ARS"</span></div>
+            <div class="er-field">plan <span class="er-type">TEXT (free/pro/enterprise)</span></div>
+            <div class="er-field">max_usuarios <span class="er-type">INTEGER</span></div>
+            <div class="er-field">config <span class="er-type">JSONB</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">usuarios</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK, FK→auth.users)</span></div>
+            <div class="er-field"><span class="er-fk">organizacion_id</span> <span class="er-type">FK→organizaciones</span></div>
+            <div class="er-field">nombre <span class="er-type">TEXT</span></div>
+            <div class="er-field">email <span class="er-type">TEXT</span></div>
+            <div class="er-field">telefono <span class="er-type">TEXT</span></div>
+            <div class="er-field">rol <span class="er-type">TEXT (owner/admin/gerente/...)</span></div>
+            <div class="er-field">zona_asignada <span class="er-type">TEXT</span></div>
+            <div class="er-field">activo <span class="er-type">BOOLEAN</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">clientes</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field">nombre_establecimiento <span class="er-type">TEXT</span></div>
+            <div class="er-field">tipo_cliente <span class="er-type">TEXT (enum)</span></div>
+            <div class="er-field">estado_lead <span class="er-type">TEXT (enum)</span></div>
+            <div class="er-field">direccion, ciudad, etc. <span class="er-type">TEXT</span></div>
+            <div class="er-field">dias_reparto <span class="er-type">TEXT[]</span></div>
+            <div class="er-field">linea_credito <span class="er-type">DECIMAL</span></div>
+            <div class="er-field">saldo_pendiente <span class="er-type">DECIMAL (actualizado en pedidos)</span></div>
+            <div class="er-field">dias_credito <span class="er-type">INTEGER</span></div>
+            <div class="er-field">fecha_ultima_compra <span class="er-type">TIMESTAMPTZ (actualizado al entregar)</span></div>
+            <div class="er-field">notas_internas <span class="er-type">TEXT</span></div>
+            <div class="er-field"><span class="er-fk">vendedor_asignado_id</span> <span class="er-type">FK→usuarios</span></div>
+            <div class="er-field"><span class="er-fk">lista_precios_id</span> <span class="er-type">FK→listas_precios</span></div>
+            <div class="er-field">scoring <span class="er-type">INTEGER (0-5)</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">productos</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field">sku <span class="er-type">TEXT (UNIQUE)</span></div>
+            <div class="er-field">nombre <span class="er-type">TEXT</span></div>
+            <div class="er-field">categoria <span class="er-type">TEXT</span></div>
+            <div class="er-field">stock_actual <span class="er-type">INTEGER</span></div>
+            <div class="er-field">stock_minimo <span class="er-type">INTEGER</span></div>
+            <div class="er-field">precio_base <span class="er-type">DECIMAL</span></div>
+            <div class="er-field">activo <span class="er-type">BOOLEAN</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">pedidos</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field">numero_pedido <span class="er-type">SERIAL</span></div>
+            <div class="er-field"><span class="er-fk">cliente_id</span> <span class="er-type">FK→clientes</span></div>
+            <div class="er-field"><span class="er-fk">vendedor_id</span> <span class="er-type">FK→usuarios</span></div>
+            <div class="er-field"><span class="er-fk">repartidor_id</span> <span class="er-type">FK→usuarios</span></div>
+            <div class="er-field">estado <span class="er-type">TEXT (enum)</span></div>
+            <div class="er-field">total <span class="er-type">DECIMAL</span></div>
+            <div class="er-field">descuento_tipo <span class="er-type">TEXT (porcentaje/monto_fijo)</span></div>
+            <div class="er-field">descuento_valor <span class="er-type">DECIMAL</span></div>
+            <div class="er-field">descuento_monto <span class="er-type">DECIMAL (calculado)</span></div>
+            <div class="er-field">metodo_pago <span class="er-type">TEXT</span></div>
+            <div class="er-field"><span class="er-fk">ruta_id</span> <span class="er-type">FK→rutas</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">productos_pedido</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field"><span class="er-fk">pedido_id</span> <span class="er-type">FK→pedidos</span></div>
+            <div class="er-field"><span class="er-fk">producto_id</span> <span class="er-type">FK→productos</span></div>
+            <div class="er-field">cantidad <span class="er-type">INTEGER</span></div>
+            <div class="er-field">precio_unitario <span class="er-type">DECIMAL</span></div>
+            <div class="er-field">subtotal <span class="er-type">DECIMAL</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">rutas</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field">nombre <span class="er-type">TEXT</span></div>
+            <div class="er-field"><span class="er-fk">repartidor_id</span> <span class="er-type">FK→usuarios</span></div>
+            <div class="er-field">fecha <span class="er-type">DATE</span></div>
+            <div class="er-field">secuencia_paradas <span class="er-type">JSONB</span></div>
+            <div class="er-field">estado <span class="er-type">TEXT (enum)</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">interacciones</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field"><span class="er-fk">cliente_id</span> <span class="er-type">FK→clientes</span></div>
+            <div class="er-field"><span class="er-fk">usuario_id</span> <span class="er-type">FK→usuarios</span></div>
+            <div class="er-field">tipo <span class="er-type">TEXT (enum)</span></div>
+            <div class="er-field">contenido <span class="er-type">TEXT</span></div>
+            <div class="er-field">resultado <span class="er-type">TEXT</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">pipeline_oportunidades</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field"><span class="er-fk">cliente_id</span> <span class="er-type">FK→clientes</span></div>
+            <div class="er-field"><span class="er-fk">vendedor_id</span> <span class="er-type">FK→usuarios</span></div>
+            <div class="er-field">etapa <span class="er-type">TEXT (enum)</span></div>
+            <div class="er-field">valor_estimado <span class="er-type">DECIMAL</span></div>
+            <div class="er-field">probabilidad_cierre <span class="er-type">INTEGER %</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">notificaciones</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field"><span class="er-fk">usuario_id</span> <span class="er-type">FK→usuarios</span></div>
+            <div class="er-field">tipo <span class="er-type">TEXT</span></div>
+            <div class="er-field">titulo <span class="er-type">TEXT</span></div>
+            <div class="er-field">leida <span class="er-type">BOOLEAN</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">listas_precios</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field">nombre <span class="er-type">TEXT</span></div>
+            <div class="er-field">descripcion <span class="er-type">TEXT</span></div>
+            <div class="er-field">activa <span class="er-type">BOOLEAN</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">precios_por_lista</div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field"><span class="er-fk">producto_id</span> <span class="er-type">FK→productos</span></div>
+            <div class="er-field"><span class="er-fk">lista_precios_id</span> <span class="er-type">FK→listas_precios</span></div>
+            <div class="er-field">precio <span class="er-type">DECIMAL</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">cobros <span style="font-size:0.7rem;opacity:0.8;">(04_cobros.sql)</span></div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field"><span class="er-fk">cliente_id</span> <span class="er-type">FK→clientes</span></div>
+            <div class="er-field"><span class="er-fk">pedido_id</span> <span class="er-type">FK→pedidos (opcional)</span></div>
+            <div class="er-field"><span class="er-fk">usuario_id</span> <span class="er-type">FK→usuarios</span></div>
+            <div class="er-field">monto <span class="er-type">DECIMAL</span></div>
+            <div class="er-field">metodo_pago <span class="er-type">TEXT</span></div>
+            <div class="er-field">fecha_cobro <span class="er-type">DATE</span></div>
+            <div class="er-field">notas <span class="er-type">TEXT</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">devoluciones <span style="font-size:0.7rem;opacity:0.8;">(06_devoluciones.sql)</span></div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field"><span class="er-fk">pedido_id</span> <span class="er-type">FK→pedidos</span></div>
+            <div class="er-field"><span class="er-fk">cliente_id</span> <span class="er-type">FK→clientes</span></div>
+            <div class="er-field">motivo <span class="er-type">TEXT</span></div>
+            <div class="er-field">estado <span class="er-type">TEXT (pendiente/aprobada/rechazada)</span></div>
+            <div class="er-field">nota_credito_monto <span class="er-type">DECIMAL</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">devoluciones_lineas <span style="font-size:0.7rem;opacity:0.8;">(06_devoluciones.sql)</span></div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field"><span class="er-fk">devolucion_id</span> <span class="er-type">FK→devoluciones</span></div>
+            <div class="er-field"><span class="er-fk">producto_id</span> <span class="er-type">FK→productos</span></div>
+            <div class="er-field">cantidad <span class="er-type">INTEGER</span></div>
+            <div class="er-field">precio_unitario <span class="er-type">DECIMAL</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">metas_vendedor <span style="font-size:0.7rem;opacity:0.8;">(07_metas_vendedor.sql)</span></div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field"><span class="er-fk">vendedor_id</span> <span class="er-type">FK→usuarios</span></div>
+            <div class="er-field">mes <span class="er-type">INTEGER (1-12)</span></div>
+            <div class="er-field">anio <span class="er-type">INTEGER</span></div>
+            <div class="er-field">meta_monto <span class="er-type">DECIMAL</span></div>
+            <div class="er-field" style="font-size:0.75rem;color:var(--gray-500);">UNIQUE (org, vendedor, mes, anio)</div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">invitaciones <span style="font-size:0.7rem;opacity:0.8;">(10_invitaciones.sql)</span></div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field"><span class="er-fk">organizacion_id</span> <span class="er-type">FK→organizaciones</span></div>
+            <div class="er-field">email <span class="er-type">TEXT</span></div>
+            <div class="er-field">nombre <span class="er-type">TEXT</span></div>
+            <div class="er-field">rol <span class="er-type">TEXT</span></div>
+            <div class="er-field">token <span class="er-type">UUID (UNIQUE)</span></div>
+            <div class="er-field">expires_at <span class="er-type">TIMESTAMPTZ (+7 días)</span></div>
+            <div class="er-field">used <span class="er-type">BOOLEAN</span></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header">historial_precios <span style="font-size:0.7rem;opacity:0.8;">(11_historial_precios.sql)</span></div>
+          <div class="er-card-body">
+            <div class="er-field"><span class="er-pk">id</span> <span class="er-type">UUID (PK)</span></div>
+            <div class="er-field"><span class="er-fk">producto_id</span> <span class="er-type">FK→productos</span></div>
+            <div class="er-field"><span class="er-fk">changed_by</span> <span class="er-type">FK→usuarios</span></div>
+            <div class="er-field">precio_anterior <span class="er-type">DECIMAL</span></div>
+            <div class="er-field">precio_nuevo <span class="er-type">DECIMAL</span></div>
+            <div class="er-field">changed_at <span class="er-type">TIMESTAMPTZ</span></div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Relaciones principales</h3>
+<pre><code>usuarios ──┬── clientes (vendedor_asignado_id)
+           ├── pedidos (vendedor_id, repartidor_id)
+           ├── rutas (repartidor_id)
+           ├── interacciones (usuario_id)
+           ├── pipeline_oportunidades (vendedor_id)
+           ├── notificaciones (usuario_id)
+           ├── cobros (usuario_id)
+           ├── metas_vendedor (vendedor_id)
+           └── historial_precios (changed_by)
+
+clientes ──┬── pedidos (cliente_id)
+           ├── interacciones (cliente_id)
+           ├── pipeline_oportunidades (cliente_id)
+           ├── cobros (cliente_id)
+           └── devoluciones (cliente_id)
+
+pedidos ───┬── productos_pedido (pedido_id)
+           ├── rutas (ruta_id)
+           ├── cobros (pedido_id, opcional)
+           └── devoluciones (pedido_id)
+
+productos ─┬── productos_pedido (producto_id)
+           ├── precios_por_lista (producto_id)
+           ├── devoluciones_lineas (producto_id)
+           └── historial_precios (producto_id)
+
+devoluciones ── devoluciones_lineas (devolucion_id)
+
+listas_precios ── precios_por_lista (lista_precios_id)
+                  clientes (lista_precios_id)
+
+organizaciones ── invitaciones (organizacion_id)</code></pre>
+
+      <!-- ==================== RLS ==================== -->
+      <h2 id="rls">Permisos y Row Level Security</h2>
+      <p>Cada tabla tiene políticas RLS con <strong>doble filtro</strong>: primero por <code>organizacion_id</code> (aislamiento multi-tenant) y luego por rol del usuario:</p>
+
+      <div class="info-box danger">
+        <strong>Regla de oro del multi-tenant</strong>
+        TODAS las políticas RLS incluyen <code>organizacion_id = get_user_org_id()</code> como primera condición.
+        Esto garantiza que un usuario NUNCA pueda ver datos de otra organización.
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Tabla</th>
+            <th>Admin</th>
+            <th>Gerente</th>
+            <th>Vendedor</th>
+            <th>Repartidor</th>
+            <th>Administrativo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>clientes</strong></td>
+            <td>Todo</td>
+            <td>Ver/Crear/Editar todos</td>
+            <td>Ver/Crear/Editar solo los suyos</td>
+            <td>-</td>
+            <td>Ver todos</td>
+          </tr>
+          <tr>
+            <td><strong>productos</strong></td>
+            <td>Todo</td>
+            <td>Todo</td>
+            <td>Solo ver</td>
+            <td>Solo ver</td>
+            <td>Solo ver</td>
+          </tr>
+          <tr>
+            <td><strong>pedidos</strong></td>
+            <td>Todo</td>
+            <td>Todo</td>
+            <td>Ver/Crear/Editar los suyos</td>
+            <td>Ver/Editar los asignados</td>
+            <td>Ver/Editar todos</td>
+          </tr>
+          <tr>
+            <td><strong>rutas</strong></td>
+            <td>Todo</td>
+            <td>Todo</td>
+            <td>-</td>
+            <td>Ver/Editar las suyas</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td><strong>pipeline</strong></td>
+            <td>Todo</td>
+            <td>Todo</td>
+            <td>Ver/Crear/Editar los suyos</td>
+            <td>-</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td><strong>notificaciones</strong></td>
+            <td>Las propias</td>
+            <td>Las propias</td>
+            <td>Las propias</td>
+            <td>Las propias</td>
+            <td>Las propias</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>Los permisos se implementan con dos funciones helper:</p>
+      <div class="code-filename">SQL</div>
+<pre><code>-- Obtener la organización del usuario autenticado
+CREATE FUNCTION public.get_user_org_id()
+RETURNS UUID AS $$
+  SELECT organizacion_id FROM public.usuarios WHERE id = auth.uid();
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+-- Obtener el rol del usuario autenticado
+CREATE FUNCTION public.get_user_rol()
+RETURNS TEXT AS $$
+  SELECT rol FROM public.usuarios WHERE id = auth.uid();
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+-- Ejemplo de política (multi-tenant + rol)
+CREATE POLICY "clientes_select" ON public.clientes
+  FOR SELECT TO authenticated
+  USING (
+    organizacion_id = public.get_user_org_id()  -- PRIMERO: filtro por organización
+    AND (
+      public.get_user_rol() IN ('owner', 'admin', 'gerente', 'administrativo')
+      OR vendedor_asignado_id = auth.uid()      -- SEGUNDO: filtro por rol
+    )
+  );</code></pre>
+
+      <!-- ==================== AUTH ==================== -->
+      <h2 id="auth">Autenticación</h2>
+      <p>El sistema usa <strong>Supabase Auth</strong> con email y password. El flujo es:</p>
+<pre><code>1. Usuario ingresa email + password
+2. Supabase Auth valida credenciales
+3. Si es correcto → devuelve JWT + session
+4. App obtiene perfil del usuario (tabla usuarios)
+5. App renderiza la interfaz según su rol</code></pre>
+
+      <div class="info-box info">
+        <strong>Trigger automático</strong>
+        Cuando se crea un usuario en Supabase Auth, automáticamente se crea su registro en la tabla
+        <code>public.usuarios</code> gracias al trigger <code>handle_new_user()</code>.
+      </div>
+
+      <!-- ==================== MÓDULOS ==================== -->
+      <h2 id="mod-auth">Módulo Auth</h2>
+      <div class="code-filename">js/auth/auth.js</div>
+      <p>Métodos disponibles:</p>
+      <table>
+        <thead><tr><th>Método</th><th>Descripción</th><th>Retorna</th></tr></thead>
+        <tbody>
+          <tr><td><code>Auth.login(email, password)</code></td><td>Inicia sesión</td><td>Session data</td></tr>
+          <tr><td><code>Auth.logout()</code></td><td>Cierra sesión</td><td>void</td></tr>
+          <tr><td><code>Auth.getSession()</code></td><td>Obtiene sesión activa</td><td>Session o null</td></tr>
+          <tr><td><code>Auth.getUser()</code></td><td>Obtiene usuario de auth</td><td>User o null</td></tr>
+          <tr><td><code>Auth.getUserProfile()</code></td><td>Obtiene perfil con rol</td><td>Objeto usuario</td></tr>
+          <tr><td><code>Auth.onAuthStateChange(cb)</code></td><td>Escucha cambios de auth</td><td>Subscription</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="mod-sidebar">Módulo Sidebar</h2>
+      <div class="code-filename">js/components/sidebar.js</div>
+      <p>Renderiza el menú lateral con navegación. Recibe el perfil del usuario para mostrar nombre, iniciales y rol. Soporta estado colapsado (70px de ancho).</p>
+
+      <h2 id="mod-navbar">Módulo Navbar</h2>
+      <div class="code-filename">js/components/navbar.js</div>
+      <p>Barra superior con: botón para colapsar sidebar, título de la página actual, botón de notificaciones y botón de logout.</p>
+
+      <h2 id="mod-dashboard">Módulo Dashboard</h2>
+      <div class="code-filename">js/pages/dashboard.js + css/components/dashboard.css</div>
+      <p>Dashboard gerencial completo con KPIs en tiempo real, gráficos interactivos (Chart.js), tablas de ranking y sistema de alertas. Todos los datos se filtran por período seleccionable (7, 30, 90 días o último año) y respetan el filtro RLS multi-tenant.</p>
+
+      <h3>Componentes del Dashboard</h3>
+      <table>
+        <thead><tr><th>Componente</th><th>Tipo</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><strong>KPIs principales</strong></td><td>4 stat-cards</td><td>Ventas del período (con ticket promedio), Pedidos (entregados/pendientes), Clientes activos, Morosidad total (con cantidad de morosos)</td></tr>
+          <tr><td><strong>Ventas por Período</strong></td><td>Gráfico línea</td><td>Evolución diaria de ventas, con relleno de área y puntos hover</td></tr>
+          <tr><td><strong>Pedidos por Estado</strong></td><td>Gráfico dona</td><td>Distribución de todos los pedidos según su estado actual (pendiente, en preparación, en ruta, entregado, cancelado, con incidencia)</td></tr>
+          <tr><td><strong>Ventas por Vendedor</strong></td><td>Gráfico barras horizontal</td><td>Ranking de vendedores por monto de ventas en el período</td></tr>
+          <tr><td><strong>Conversión Pipeline</strong></td><td>Gráfico barras vertical</td><td>Cantidad de oportunidades en cada etapa del embudo (contacto → cliente activo)</td></tr>
+          <tr><td><strong>Top 10 Clientes</strong></td><td>Tabla ranking</td><td>Clientes ordenados por facturación total, con badges oro/plata/bronce</td></tr>
+          <tr><td><strong>Top 10 Productos</strong></td><td>Tabla ranking</td><td>Productos más vendidos por monto facturado, con unidades vendidas</td></tr>
+          <tr><td><strong>Alertas</strong></td><td>Lista de alertas</td><td>Stock bajo, productos por vencer (15 días), clientes morosos, pedidos pendientes &gt;3 días</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Selector de período</h3>
+      <p>Arriba a la derecha hay un <code>&lt;select&gt;</code> que permite filtrar los datos por período:</p>
+      <ul>
+        <li><strong>7 días</strong> — Vista semanal</li>
+        <li><strong>30 días</strong> — Vista mensual (por defecto)</li>
+        <li><strong>90 días</strong> — Vista trimestral</li>
+        <li><strong>365 días</strong> — Vista anual</li>
+      </ul>
+      <p>Al cambiar el período, todos los gráficos, KPIs y tablas se recargan automáticamente.</p>
+
+      <h3>Chart.js — Carga lazy</h3>
+      <p>Chart.js (~200KB) se carga dinámicamente al entrar al dashboard, igual que jsPDF en pedidos. Se intenta cargar primero desde <code>cdn.jsdelivr.net</code> y si falla, desde <code>cdnjs.cloudflare.com</code>. Los charts se destruyen y recrean cada vez que cambia el período para evitar memory leaks.</p>
+
+      <h3>Sistema de alertas</h3>
+      <table>
+        <thead><tr><th>Tipo</th><th>Condición</th><th>Severidad</th></tr></thead>
+        <tbody>
+          <tr><td>Stock bajo</td><td><code>stock_actual &lt;= stock_minimo</code> (si stock_minimo &gt; 0)</td><td>Danger (rojo)</td></tr>
+          <tr><td>Producto vencido</td><td><code>fecha_vencimiento</code> en el pasado</td><td>Danger (rojo)</td></tr>
+          <tr><td>Producto por vencer</td><td><code>fecha_vencimiento</code> dentro de 15 días</td><td>Warning (amarillo)</td></tr>
+          <tr><td>Cliente moroso</td><td><code>saldo_pendiente &gt; 0</code> (top 5)</td><td>Warning (amarillo)</td></tr>
+          <tr><td>Pedido estancado</td><td>Pedido en estado "pendiente" hace más de 3 días</td><td>Warning (amarillo)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Estructura del código</h3>
+<pre><code>DashboardPage = {
+  charts: [],             // Instancias de Chart.js para destruir/recrear
+
+  render(container)       // Layout completo + carga de Chart.js + loadAll
+  loadAll()               // Ejecuta en paralelo los 8 loaders
+  getDias()               // Retorna período seleccionado
+  getDesde()              // Retorna fecha ISO desde la que filtrar
+
+  // Loaders
+  loadKPIs()              // Ventas, pedidos, clientes, morosidad
+  loadChartVentas()       // Gráfico de línea por día
+  loadChartEstados()      // Gráfico dona de estados
+  loadChartVendedores()   // Gráfico barras vendedores
+  loadChartPipeline()     // Gráfico barras pipeline
+  loadTopClientes()       // Tabla top 10
+  loadTopProductos()      // Tabla top 10
+  loadAlertas()           // Stock, vencimiento, morosidad, pedidos
+
+  _loadChartJS()          // Lazy load de Chart.js desde CDN
+}</code></pre>
+
+      <h2 id="mod-clientes">Módulo Clientes</h2>
+      <div class="code-filename">js/pages/clientes.js + css/components/clientes.css</div>
+      <p>Módulo completo de gestión de clientes con las siguientes funcionalidades:</p>
+
+      <h3>Funcionalidades implementadas</h3>
+      <table>
+        <thead><tr><th>Funcionalidad</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Listado con tabla</strong></td><td>Tabla paginada (15 por página) con nombre, tipo, estado, teléfono, semáforo de crédito y scoring</td></tr>
+          <tr><td><strong>Búsqueda</strong></td><td>Búsqueda en tiempo real (con debounce) por nombre, ciudad, teléfono o email</td></tr>
+          <tr><td><strong>Filtros</strong></td><td>Filtrar por tipo de cliente (HORECA, Supermercado, Tienda, Mayorista) y por estado del lead</td></tr>
+          <tr><td><strong>Crear cliente</strong></td><td>Modal con formulario completo organizado en secciones: Datos principales, Contacto, Ubicación, Logística, Financiero, Scoring</td></tr>
+          <tr><td><strong>Editar cliente</strong></td><td>Mismo modal pre-cargado con los datos del cliente</td></tr>
+          <tr><td><strong>Eliminar cliente</strong></td><td>Modal de confirmación antes de eliminar</td></tr>
+          <tr><td><strong>Ficha del cliente</strong></td><td>Vista detallada con toda la información organizada en cards: Datos Generales, Logística, Financiero, Métricas</td></tr>
+          <tr><td><strong>Semáforo de crédito</strong></td><td>Verde (al día), Amarillo (vencido &lt;7 días), Rojo (moroso &gt;7 días)</td></tr>
+          <tr><td><strong>Scoring</strong></td><td>Calificación de 0 a 5 estrellas</td></tr>
+          <tr><td><strong>Acciones rápidas</strong></td><td>Botones de WhatsApp, Llamar, Email y Mapa directamente desde la ficha</td></tr>
+          <tr><td><strong>Paginación</strong></td><td>Navegación por páginas con conteo de resultados</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Semáforo de crédito</h3>
+      <p>El sistema asigna automáticamente un color según el estado financiero del cliente:</p>
+      <table>
+        <thead><tr><th>Color</th><th>Condición</th><th>Significado</th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--success);">&#9679; Verde</td><td>Sin saldo pendiente o dentro del plazo de crédito</td><td>Puede comprar sin límites</td></tr>
+          <tr><td style="color:var(--warning);">&#9679; Amarillo</td><td>Factura vencida hace menos de 7 días</td><td>Advertencia, revisar situación</td></tr>
+          <tr><td style="color:var(--danger);">&#9679; Rojo</td><td>Morosidad mayor a 7 días</td><td>Bloqueo automático de nuevos pedidos</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Estructura del código</h3>
+<pre><code>ClientesPage = {
+  // Estado
+  clientes: [],          // Lista actual
+  vendedores: [],        // Para el select de vendedor asignado
+  listasPrecios: [],     // Para el select de lista de precios
+  totalCount: 0,         // Total para paginación
+  currentPage: 0,        // Página actual
+  filters: {},           // Filtros activos
+  editingId: null,       // null = crear, uuid = editar
+
+  // Métodos principales
+  render(container)      // Renderiza toda la página
+  loadClientes()         // Carga con filtros y paginación
+  openModal(data?)       // Abre modal crear/editar
+  openFicha(id)          // Abre ficha detallada
+  saveCliente()          // Guarda (insert o update)
+  confirmarEliminar(id)  // Modal de confirmación + delete
+
+  // Helpers
+  renderSemaforo(cliente)  // Genera HTML del semáforo
+  renderScoring(score)     // Genera HTML de estrellas
+  getSemaforoClass(c)      // Retorna 'verde'|'amarillo'|'rojo'
+}</code></pre>
+
+      <!-- ==================== PRODUCTOS ==================== -->
+      <h2 id="mod-productos">Módulo Productos</h2>
+      <div class="code-filename">js/pages/productos.js + css/components/productos.css</div>
+      <p>Módulo completo de gestión de productos con catálogo, stock y listas de precios.</p>
+
+      <h3>Funcionalidades</h3>
+      <table>
+        <thead><tr><th>Funcionalidad</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Listado con tabla</strong></td><td>Tabla paginada (20 por página) con nombre, SKU, categoría, precio base, stock, vencimiento y estado</td></tr>
+          <tr><td><strong>Búsqueda</strong></td><td>Por nombre, SKU, categoría o proveedor (con debounce)</td></tr>
+          <tr><td><strong>Filtros</strong></td><td>Por categoría (dinámicas), stock bajo, sin stock, próximos a vencer (30 días)</td></tr>
+          <tr><td><strong>CRUD completo</strong></td><td>Crear, editar y eliminar productos con confirmación</td></tr>
+          <tr><td><strong>Indicador de stock</strong></td><td>Badges de color: verde (OK), amarillo (bajo), rojo (sin stock)</td></tr>
+          <tr><td><strong>Alerta vencimiento</strong></td><td>Muestra en rojo los productos que vencen en menos de 30 días o ya vencidos</td></tr>
+          <tr><td><strong>Listas de precios</strong></td><td>Dentro del modal se pueden asignar precios por cada lista (Tarifa A/B/C). Si no se asigna, se usa el precio base</td></tr>
+          <tr><td><strong>Categorías dinámicas</strong></td><td>El filtro de categorías se auto-genera desde los productos existentes</td></tr>
+          <tr><td><strong>Toggle activo/inactivo</strong></td><td>Productos inactivos no aparecen al crear pedidos</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Estructura del código</h3>
+<pre><code>ProductosPage = {
+  productos: [],        // Lista paginada
+  listasPrecios: [],    // Para asignar precios por lista
+  categorias: [],       // Únicas, para el filtro
+
+  render(container)           // Renderiza la página
+  loadProductos()             // Carga con filtros y paginación
+  loadCategorias()            // Carga categorías únicas
+  openModal(data?)            // Modal crear/editar
+  saveProducto()              // Insert o update + precios por lista
+  savePreciosLista(id, fd)    // Upsert de precios en precios_por_lista
+  confirmarEliminar(id)       // Modal de confirmación + delete
+}</code></pre>
+
+      <!-- ==================== PEDIDOS ==================== -->
+      <h2 id="mod-pedidos">Módulo Pedidos</h2>
+      <div class="code-filename">js/pages/pedidos.js + css/components/pedidos.css</div>
+      <p>Módulo de gestión de pedidos con creación, cambio de estados y generación de PDF.</p>
+
+      <h3>Funcionalidades</h3>
+      <table>
+        <thead><tr><th>Funcionalidad</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Listado de pedidos</strong></td><td>Tabla paginada con #pedido, cliente, vendedor, estado, total, fechas</td></tr>
+          <tr><td><strong>Búsqueda</strong></td><td>Por número de pedido</td></tr>
+          <tr><td><strong>Filtro por estado</strong></td><td>Pendiente, En Preparación, En Ruta, Entregado, Cancelado, Con Incidencia</td></tr>
+          <tr><td><strong>Crear pedido</strong></td><td>Seleccionar cliente, vendedor, agregar productos con buscador, ajustar cantidades y precios, calcular total automático. Aplica automáticamente la lista de precios del cliente si tiene una asignada.</td></tr>
+          <tr><td><strong>Selector de productos</strong></td><td>Buscador integrado con dropdown, quita productos ya agregados. Permite editar cantidad y precio por línea. Muestra "★ lista" cuando hay precio de lista diferente al base.</td></tr>
+          <tr><td><strong>Productos frecuentes</strong></td><td>Al seleccionar cliente, chips con los últimos 5 productos únicos. Click directo para agregar al pedido.</td></tr>
+          <tr><td><strong>Control de crédito</strong></td><td>Panel inline con saldo pendiente, límite y disponible del cliente. Warning en rojo si el total supera el crédito.</td></tr>
+          <tr><td><strong>Descuento</strong></td><td>Fila entre productos y total. Tipo % o monto fijo. Recálculo en tiempo real.</td></tr>
+          <tr><td><strong>Vista detalle</strong></td><td>Modal con toda la info del pedido + tabla de productos con subtotales</td></tr>
+          <tr><td><strong>Cambiar estado</strong></td><td>Botones inline en el detalle. Al marcar "Entregado": registra fecha_entrega_real y actualiza fecha_ultima_compra del cliente.</td></tr>
+          <tr><td><strong>Generar PDF</strong></td><td>Descarga PDF del pedido con jsPDF: encabezado con nombre de org, datos del pedido, tabla de productos y total</td></tr>
+          <tr><td><strong>Remito de entrega</strong></td><td>Botón en footer del detalle. Impresión sin precios para firma del receptor (receptor, DNI, repartidor).</td></tr>
+          <tr><td><strong>WhatsApp</strong></td><td>Botón que abre wa.me con mensaje formateado del pedido (productos, total, fechas).</td></tr>
+          <tr><td><strong>Duplicar pedido</strong></td><td>Crea copia con mismo cliente y productos. Estado pendiente, número nuevo.</td></tr>
+          <tr><td><strong>Devoluciones</strong></td><td>Botón "Devolver" en pedidos entregados. Selección de productos/cantidades, motivo. Genera nota de crédito. Listado global en botón del header.</td></tr>
+          <tr><td><strong>Eliminar pedido</strong></td><td>Con confirmación, elimina líneas y pedido</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Estados del pedido</h3>
+      <table>
+        <thead><tr><th>Estado</th><th>Color</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td>Pendiente</td><td style="color:#f59e0b;">&#9679;</td><td>Recién creado, esperando procesamiento</td></tr>
+          <tr><td>En Preparación</td><td style="color:#2563eb;">&#9679;</td><td>Siendo armado en almacén</td></tr>
+          <tr><td>En Ruta</td><td style="color:#7c3aed;">&#9679;</td><td>En el camión de reparto</td></tr>
+          <tr><td>Entregado</td><td style="color:#16a34a;">&#9679;</td><td>Recibido y confirmado por el cliente</td></tr>
+          <tr><td>Cancelado</td><td style="color:#9ca3af;">&#9679;</td><td>Pedido anulado</td></tr>
+          <tr><td>Con Incidencia</td><td style="color:#dc2626;">&#9679;</td><td>Problema reportado (producto dañado, etc.)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Generación de PDF</h3>
+      <p>Se usa la librería <strong>jsPDF</strong> (cargada bajo demanda la primera vez que se genera un PDF). El PDF incluye:</p>
+      <ul style="margin-left:1.5rem;margin-bottom:1rem;">
+        <li>Nombre de la organización (branding dinámico)</li>
+        <li>Número de pedido, fecha, cliente, vendedor</li>
+        <li>Tabla de productos con cantidades, precios y subtotales</li>
+        <li>Total del pedido</li>
+        <li>Observaciones (si existen)</li>
+      </ul>
+
+      <h3>Estructura del código</h3>
+<pre><code>PedidosPage = {
+  pedidos: [],       // Lista paginada
+  clientes: [],      // Para select en el formulario
+  productos: [],     // Para el selector de productos
+  vendedores: [],    // Para el select de vendedor
+  lineas: [],        // Líneas del pedido en creación
+
+  render(container)           // Renderiza la página
+  loadPedidos()               // Carga con filtros
+  openModalNuevoPedido()      // Modal completo de creación
+  agregarLinea(productoId)    // Agrega producto al pedido
+  renderLineas()              // Renderiza líneas + recalcula
+  savePedido()                // Insert pedido + productos_pedido
+  openDetalle(id)             // Modal con detalle + cambio de estado
+  generarPDF(pedido, lineas)  // Descarga PDF con jsPDF
+  confirmarEliminar(id)       // Modal confirmación + delete
+}</code></pre>
+
+      <h2 id="mod-pipeline">Módulo Pipeline Kanban</h2>
+      <div class="code-filename">js/pages/pipeline.js + css/components/pipeline.css</div>
+      <p>Tablero Kanban visual que representa el <strong>embudo de ventas</strong> de la distribuidora. Permite ver de un vistazo en qué estado están todas las negociaciones con clientes y cuánto se espera facturar.</p>
+
+      <h3>¿Qué es el Pipeline?</h3>
+      <p>El Pipeline (o embudo de ventas) es un tablero con 6 columnas. Cada columna representa una <strong>etapa</strong> en el proceso de venta. Las tarjetas se mueven de izquierda a derecha a medida que la negociación avanza.</p>
+      <p>Ejemplo: un vendedor contacta a "Supermercado López" → crea una oportunidad en "Contacto Inicial" → cuando confirma interés la arrastra a "Calificación" → le envía presupuesto → la arrastra a "Presupuesto" → y así hasta que se convierte en "Cliente Activo".</p>
+
+      <h3>¿Qué es una Oportunidad?</h3>
+      <p>Una <strong>oportunidad</strong> es un registro que representa un negocio potencial con un cliente. No es un pedido (eso ya existe en el módulo Pedidos), sino la <strong>expectativa de venta</strong> antes de que se concrete. Contiene:</p>
+      <ul>
+        <li><strong>Cliente:</strong> Con qué establecimiento se está negociando</li>
+        <li><strong>Valor estimado:</strong> Cuánto se espera que compre (ej: ARS 500.000)</li>
+        <li><strong>Probabilidad de cierre:</strong> Qué tan probable es que se cierre la venta (ej: 50%)</li>
+        <li><strong>Etapa actual:</strong> En qué punto del proceso de venta está</li>
+        <li><strong>Vendedor asignado:</strong> Quién lleva esta negociación</li>
+        <li><strong>Próxima acción:</strong> Qué hay que hacer y para cuándo (ej: "Enviar presupuesto actualizado" para el 20/02)</li>
+      </ul>
+
+      <h3>Las 6 Etapas del Embudo</h3>
+      <table>
+        <thead><tr><th>Etapa</th><th>¿Qué significa?</th><th>Probabilidad por defecto</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Contacto Inicial</strong></td>
+            <td>Se hizo el primer contacto con el cliente (llamada, WhatsApp, visita). Todavía no se sabe si hay interés real.</td>
+            <td>10%</td>
+          </tr>
+          <tr>
+            <td><strong>Calificación</strong></td>
+            <td>Se confirmó que el cliente tiene interés, capacidad de compra y encaja con los productos de la distribuidora.</td>
+            <td>25%</td>
+          </tr>
+          <tr>
+            <td><strong>Presupuesto</strong></td>
+            <td>Se le envió una cotización o lista de precios al cliente. Está evaluando.</td>
+            <td>50%</td>
+          </tr>
+          <tr>
+            <td><strong>Negociación</strong></td>
+            <td>El cliente está interesado pero negociando condiciones: precios, plazos de pago, frecuencia de entrega, etc.</td>
+            <td>70%</td>
+          </tr>
+          <tr>
+            <td><strong>Primer Pedido</strong></td>
+            <td>El cliente aceptó y está por hacer (o ya hizo) su primer pedido. Falta concretar logística.</td>
+            <td>90%</td>
+          </tr>
+          <tr>
+            <td><strong>Cliente Activo</strong></td>
+            <td>Venta cerrada. El cliente ya compró y es un cliente activo de la distribuidora.</td>
+            <td>100%</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>¿Qué muestra cada tarjeta?</h3>
+      <p>Cada tarjeta en el tablero muestra esta información:</p>
+      <ul>
+        <li><strong>Nombre del cliente</strong> (arriba) — El establecimiento con el que se negocia</li>
+        <li><strong>Valor estimado</strong> (abajo-izquierda) — Cuánto se espera facturar (ej: ARS 500.000)</li>
+        <li><strong>Probabilidad</strong> (abajo-centro) — El porcentaje de probabilidad de cierre (ej: 50%)</li>
+        <li><strong>Días en etapa</strong> (abajo-derecha, con reloj) — Cuántos días lleva la tarjeta en esa columna sin moverse. Sirve para detectar negociaciones estancadas</li>
+        <li><strong>Vendedor</strong> (avatar y nombre) — Quién está a cargo de esta negociación</li>
+        <li><strong>Próxima acción</strong> (al pie, con reloj) — Qué hay que hacer próximamente. Si la fecha ya pasó, se muestra en rojo</li>
+        <li><strong>Botones de editar/eliminar</strong> — Aparecen al pasar el mouse sobre la tarjeta</li>
+      </ul>
+
+      <h3>¿Qué es el Pronóstico Ponderado?</h3>
+      <p>Es el cálculo más importante del pipeline:</p>
+      <p style="text-align:center;font-size:1.1em;padding:1rem;background:var(--gray-50);border-radius:var(--radius-md);margin:1rem 0;"><strong>Valor Estimado × Probabilidad = Pronóstico</strong></p>
+      <p>Ejemplo: Si un cliente tiene un valor estimado de <strong>$500.000</strong> y está en etapa "Presupuesto" (probabilidad 50%), el pronóstico es <strong>$250.000</strong>.</p>
+      <p>El <strong>resumen superior del tablero</strong> suma todos los pronósticos de todas las oportunidades. Esto te da una estimación realista de cuánto vas a facturar considerando que no todas las negociaciones se van a cerrar.</p>
+      <table>
+        <thead><tr><th>Métrica del resumen</th><th>Qué muestra</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Oportunidades</strong></td><td>Cantidad total de oportunidades abiertas en el pipeline</td></tr>
+          <tr><td><strong>Valor Total</strong></td><td>Suma de todos los valores estimados (el "mejor caso" si se cierran todas)</td></tr>
+          <tr><td><strong>Pronóstico Ponderado</strong></td><td>Suma de (valor × probabilidad) de cada oportunidad. Es la estimación realista de facturación</td></tr>
+          <tr><td><strong>Con Alerta</strong></td><td>Cantidad de tarjetas que llevan más de 5 días sin moverse (necesitan atención)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Sistema de Alertas Visuales</h3>
+      <p>Las tarjetas cambian de aspecto según cuánto tiempo llevan sin moverse de etapa:</p>
+      <table>
+        <thead><tr><th>Indicador</th><th>Condición</th><th>Significado</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Sin borde especial</td>
+            <td>0 a 5 días en la etapa</td>
+            <td>Todo normal, la negociación está activa</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#f59e0b;">Borde amarillo</strong></td>
+            <td>Más de 5 días sin moverse</td>
+            <td>Atención: la negociación puede estar enfriándose. Hay que hacer seguimiento</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#ef4444;">Borde rojo</strong></td>
+            <td>Más de 10 días sin moverse</td>
+            <td>Alerta: riesgo alto de perder la venta. Se necesita acción inmediata</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Drag &amp; Drop (Arrastrar y Soltar)</h3>
+      <p>Para mover una oportunidad de etapa:</p>
+      <ol>
+        <li>Hacé click y mantenelo presionado sobre una tarjeta</li>
+        <li>Arrastrala hasta la columna de la nueva etapa</li>
+        <li>Soltala</li>
+      </ol>
+      <p>Al soltar, automáticamente:</p>
+      <ul>
+        <li>Se actualiza la etapa en Supabase</li>
+        <li>Se reinicia el contador de "días en etapa" a 0</li>
+        <li>Se ajusta la probabilidad al valor por defecto de la nueva etapa</li>
+        <li>Se recalculan los totales y pronósticos del resumen</li>
+      </ul>
+      <p>Nota: la probabilidad se puede editar manualmente después si no coincide con el default.</p>
+
+      <h3>Crear una Oportunidad</h3>
+      <p>Al hacer click en "Nueva Oportunidad" se abre un formulario con:</p>
+      <ul>
+        <li><strong>Cliente:</strong> Seleccionar de la lista de clientes existentes</li>
+        <li><strong>Vendedor:</strong> Quién va a llevar esta negociación</li>
+        <li><strong>Etapa:</strong> En qué punto del proceso está (default: Contacto Inicial)</li>
+        <li><strong>Valor estimado:</strong> Cuánto se espera facturar con este cliente</li>
+        <li><strong>Probabilidad de cierre:</strong> Se auto-completa según la etapa, pero se puede editar</li>
+        <li><strong>Pronóstico:</strong> Se calcula en tiempo real mientras editás valor y probabilidad</li>
+        <li><strong>Próxima acción:</strong> Texto libre (ej: "Llamar para confirmar pedido")</li>
+        <li><strong>Fecha próxima acción:</strong> Cuándo hay que hacer esa acción</li>
+      </ul>
+
+      <h3>Tabla utilizada en Supabase</h3>
+      <p><code>pipeline_oportunidades</code> — ya creada en Fase 1 (01_tablas.sql).</p>
+      <table>
+        <thead><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>UUID</td><td>Identificador único</td></tr>
+          <tr><td>organizacion_id</td><td>UUID (FK)</td><td>Aislamiento multi-tenant</td></tr>
+          <tr><td>cliente_id</td><td>UUID (FK)</td><td>El cliente de esta oportunidad</td></tr>
+          <tr><td>vendedor_id</td><td>UUID (FK)</td><td>El vendedor asignado</td></tr>
+          <tr><td>etapa</td><td>TEXT</td><td>contacto_inicial, calificacion, presupuesto, negociacion, primer_pedido, cliente_activo</td></tr>
+          <tr><td>valor_estimado</td><td>DECIMAL</td><td>Monto estimado de la venta</td></tr>
+          <tr><td>probabilidad_cierre</td><td>INTEGER (0-100)</td><td>Probabilidad de que se cierre</td></tr>
+          <tr><td>fecha_entrada_etapa</td><td>TIMESTAMPTZ</td><td>Cuándo entró a la etapa actual (para calcular días)</td></tr>
+          <tr><td>proxima_accion</td><td>TEXT</td><td>Descripción de la próxima acción a realizar</td></tr>
+          <tr><td>fecha_proxima_accion</td><td>TIMESTAMPTZ</td><td>Fecha límite para la próxima acción</td></tr>
+        </tbody>
+      </table>
+
+      <h3>API interna</h3>
+<pre><code>PipelinePage {
+  render(container)            // Renderiza el tablero Kanban completo
+  loadOportunidades()          // Carga datos de Supabase + renderiza board y summary
+  renderBoard()                // Renderiza tarjetas en las 6 columnas
+  renderCard(op)               // Genera el HTML de una tarjeta individual
+  renderSummary()              // Renderiza métricas de resumen (totales, pronóstico)
+  diasEnEtapa(op)              // Calcula días desde fecha_entrada_etapa hasta hoy
+  getDefaultProb(etapa)        // Devuelve la probabilidad por defecto para una etapa
+  initDragAndDrop()            // Configura drag &amp; drop nativo HTML5
+  openModal(data?)             // Modal crear/editar con pronóstico en vivo
+  saveOportunidad(editingId?)  // Insert o update en pipeline_oportunidades
+  confirmarEliminar(id)        // Modal confirmación + delete
+}</code></pre>
+
+      <h3>Ejemplo de uso típico</h3>
+      <ol>
+        <li>Un vendedor contacta a "Restaurante El Buen Sabor" → Crea oportunidad en "Contacto Inicial" con valor $200.000</li>
+        <li>El restaurante muestra interés → Arrastra la tarjeta a "Calificación" (prob. sube a 25%)</li>
+        <li>Le envía presupuesto de lácteos y congelados → Arrastra a "Presupuesto" (prob. 50%)</li>
+        <li>El cliente pide descuento del 5% → Arrastra a "Negociación" (prob. 70%)</li>
+        <li>Acepta las condiciones → Arrastra a "Primer Pedido" (prob. 90%)</li>
+        <li>Se crea el pedido en el módulo Pedidos y se entrega → Arrastra a "Cliente Activo" (prob. 100%)</li>
+      </ol>
+      <p>Durante todo el proceso, el pronóstico ponderado se va ajustando: empezó en $20.000 (200k × 10%) y terminó en $200.000 (200k × 100%).</p>
+
+      <hr>
+
+      <!-- ==================== MÓDULO LOGÍSTICA ==================== -->
+      <h2 id="mod-logistica">Módulo Logística y Rutas</h2>
+      <div class="code-filename">js/pages/logistica.js + css/components/logistica.css</div>
+      <p>Módulo de gestión de rutas de reparto con mapa interactivo (Leaflet), asignación de pedidos a rutas, seguimiento de entregas y marcado de entrega por parada.</p>
+
+      <h3>Funcionalidades implementadas</h3>
+      <table>
+        <thead><tr><th>Funcionalidad</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><strong>CRUD de rutas</strong></td><td>Crear, editar y eliminar rutas con nombre, fecha, repartidor, vehículo, hora de salida, km estimados</td></tr>
+          <tr><td><strong>Mapa interactivo</strong></td><td>Mapa Leaflet (OpenStreetMap, gratuito) que muestra las paradas de cada ruta con marcadores numerados de colores</td></tr>
+          <tr><td><strong>Asignar pedidos</strong></td><td>En el detalle de la ruta, se listan los pedidos pendientes/en preparación sin ruta. Un click los agrega como parada</td></tr>
+          <tr><td><strong>Paradas ordenadas</strong></td><td>Cada parada muestra número de orden, pedido, cliente, dirección y estado de entrega</td></tr>
+          <tr><td><strong>Marcar entregado</strong></td><td>Botón para marcar cada parada como entregada. Actualiza la hora de entrega y cambia el estado del pedido a "entregado"</td></tr>
+          <tr><td><strong>Quitar parada</strong></td><td>Se puede quitar un pedido de la ruta, liberando el pedido para reasignación</td></tr>
+          <tr><td><strong>Cambio de estado</strong></td><td>Selector de estado de la ruta: Pendiente → En Curso → Completada</td></tr>
+          <tr><td><strong>Barra de progreso</strong></td><td>Cada tarjeta de ruta muestra progreso visual de entregas completadas vs totales</td></tr>
+          <tr><td><strong>Filtros</strong></td><td>Filtrar rutas por estado y por fecha</td></tr>
+          <tr><td><strong>GPS en mapa</strong></td><td>Si el cliente tiene <code>ubicacion_gps</code> (formato <code>-34.60,-58.38</code>), aparece en el mapa</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Layout de la página</h3>
+      <p>La vista se divide en dos paneles:</p>
+      <ul>
+        <li><strong>Panel izquierdo (380px):</strong> Lista de tarjetas de rutas con filtros</li>
+        <li><strong>Panel derecho (flexible):</strong> Mapa Leaflet con marcadores de todas las paradas</li>
+      </ul>
+      <p>Al hacer click en una tarjeta de ruta, el mapa hace zoom a las paradas de esa ruta. En móvil, los paneles se apilan verticalmente.</p>
+
+      <h3>Estructura de paradas (JSONB)</h3>
+      <p>Las paradas se guardan como JSONB en la columna <code>secuencia_paradas</code> de la tabla <code>rutas</code>:</p>
+<pre><code>[
+  {
+    "pedido_id": "uuid",
+    "numero_pedido": "123",
+    "cliente": "Restaurante El Fogón",
+    "direccion": "Av. Corrientes 1234",
+    "gps": "-34.6037,-58.3816",
+    "entregado": false,
+    "hora_entrega": null,
+    "nota": ""
+  }
+]</code></pre>
+
+      <h3>Leaflet — Carga lazy</h3>
+      <p>Leaflet (~40KB JS + 14KB CSS) se carga dinámicamente al entrar al módulo. Usa tiles de OpenStreetMap (gratuito, sin API key). El mapa se centra en Buenos Aires por defecto y hace <code>fitBounds</code> si hay paradas con coordenadas GPS.</p>
+
+      <h3>Estructura del código</h3>
+<pre><code>LogisticaPage = {
+  rutas: [],
+  repartidores: [],
+  pedidosSinRuta: [],
+
+  render(container)           // Layout: lista + mapa + filtros
+  loadRutas()                 // Carga con filtros de estado/fecha
+  loadRepartidores()          // Para select de repartidor
+  loadPedidosSinRuta()        // Pedidos pendientes sin ruta_id
+
+  renderLista()               // Tarjetas de rutas
+  openModal(ruta?)            // Modal crear/editar ruta
+  saveRuta(editId?)           // Insert/update en Supabase
+  openDetalle(id)             // Modal detalle con paradas
+  confirmarEliminar(id)       // Confirmación + delete
+
+  _renderParadas(paradas)     // HTML de lista de paradas
+  _bindParadaEvents(ruta)     // Eventos: marcar entregado, quitar
+
+  _loadLeaflet()              // Lazy load de Leaflet
+  _initMap()                  // Inicializar mapa
+  _renderMarkers()            // Dibujar marcadores
+  _focusRuta(id)              // Zoom a paradas de una ruta
+  _parseGPS(gps)              // Parsear "lat,lng" a [lat, lng]
+}</code></pre>
+
+      <h3>Tabla SQL utilizada</h3>
+      <table>
+        <thead><tr><th>Columna</th><th>Tipo</th><th>Uso</th></tr></thead>
+        <tbody>
+          <tr><td><code>nombre</code></td><td>TEXT</td><td>Nombre de la ruta ("Norte - Camión 03")</td></tr>
+          <tr><td><code>repartidor_id</code></td><td>UUID FK</td><td>Repartidor asignado</td></tr>
+          <tr><td><code>vehiculo</code></td><td>TEXT</td><td>Vehículo (camión, camioneta)</td></tr>
+          <tr><td><code>fecha</code></td><td>DATE</td><td>Fecha de la ruta</td></tr>
+          <tr><td><code>hora_salida</code></td><td>TIME</td><td>Hora de salida del almacén</td></tr>
+          <tr><td><code>secuencia_paradas</code></td><td>JSONB</td><td>Array de paradas con estado de entrega</td></tr>
+          <tr><td><code>estado</code></td><td>TEXT</td><td>pendiente / en_curso / completada</td></tr>
+          <tr><td><code>km_estimados</code></td><td>DECIMAL</td><td>Kilómetros estimados de la ruta</td></tr>
+        </tbody>
+      </table>
+
+      <hr>
+
+      <!-- ==================== MÓDULO REPORTES ==================== -->
+      <h2 id="mod-reportes">Módulo Reportes</h2>
+      <div class="code-filename">js/pages/reportes.js + css/components/reportes.css</div>
+      <p>Página de reportes con <strong>6 tabs</strong> de análisis, cada una con KPIs, gráficos Chart.js y tablas detalladas. Todos los datos se filtran por rango de fechas seleccionable.</p>
+
+      <h3>Tabs disponibles</h3>
+      <table>
+        <thead><tr><th>Tab</th><th>Contenido</th><th>Gráficos</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Ventas</strong></td>
+            <td>KPIs de facturación (total, ticket promedio, pedidos). Tabla con detalle de cada pedido.</td>
+            <td>Evolución diaria de ventas (línea), distribución por método de pago (dona)</td>
+          </tr>
+          <tr>
+            <td><strong>Vendedores</strong></td>
+            <td>KPIs por vendedor. Tabla con nombre, pedidos, total vendido, ticket promedio, tasa de éxito.</td>
+            <td>Comparativo de vendedores (barras horizontales)</td>
+          </tr>
+          <tr>
+            <td><strong>Productos</strong></td>
+            <td>KPIs de catálogo (total productos, con stock bajo, activos). Tabla completa.</td>
+            <td>Top 15 productos (barras), distribución por categoría (dona)</td>
+          </tr>
+          <tr>
+            <td><strong>Morosidad</strong></td>
+            <td>KPIs de deuda (total, cantidad morosos, promedio). Tabla con clientes morosos y teléfono.</td>
+            <td>Deuda por color de semáforo (barras)</td>
+          </tr>
+          <tr>
+            <td><strong>Clientes Inactivos</strong></td>
+            <td>KPIs por brackets (30/60/90 días sin comprar). Tabla con últimos datos de compra.</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td><strong>Entregas</strong></td>
+            <td>KPIs de logística (rutas, completadas, entregas). Tabla de repartidores y rutas.</td>
+            <td>-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="info-box tip">
+        <strong>Selector de fechas</strong>
+        Cada tab tiene un rango de fechas (Desde / Hasta) que filtra todos los datos. Por defecto muestra los últimos 30 días.
+      </div>
+
+      <h3>Permisos de acceso</h3>
+      <ul>
+        <li><strong>owner, admin, gerente</strong> — Acceso a todos los reportes</li>
+        <li><strong>administrativo</strong> — Solo ve el tab de Morosidad</li>
+        <li><strong>vendedor, repartidor</strong> — No tiene acceso a Reportes</li>
+      </ul>
+
+      <hr>
+
+      <!-- ==================== MÓDULO CONFIGURACIÓN ==================== -->
+      <h2 id="mod-configuracion">Módulo Configuración</h2>
+      <div class="code-filename">js/pages/configuracion.js + css/components/configuracion.css</div>
+      <p>Página de configuración con <strong>3 tabs</strong> para administrar la organización, los usuarios y las listas de precios. Solo accesible para roles <code>owner</code> y <code>admin</code> (excepto listas de precios, que también ve <code>gerente</code>).</p>
+
+      <h3>Tab Organización</h3>
+      <p>Permite editar los datos de la empresa:</p>
+      <table>
+        <thead><tr><th>Sección</th><th>Campos</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Datos de la empresa</strong></td><td>Nombre, razón social, CUIT/RUT, dirección</td></tr>
+          <tr><td><strong>Contacto</strong></td><td>Teléfono, email, sitio web</td></tr>
+          <tr><td><strong>Personalización visual</strong></td><td>Color primario y secundario (pickers sincronizados con text input), URLs de logo y favicon</td></tr>
+          <tr><td><strong>Preferencias</strong></td><td>Moneda (ARS/USD/EUR/CLP/MXN/COP/UYU), zona horaria</td></tr>
+        </tbody>
+      </table>
+      <p>Al guardar, se aplica el branding en vivo: se actualizan los colores CSS, el nombre en el sidebar y el título del navegador, todo sin recargar la página.</p>
+
+      <h3>Tab Usuarios</h3>
+      <p>Gestión de todos los usuarios de la organización:</p>
+      <ul>
+        <li>Lista de usuarios con avatar (iniciales), nombre, email, rol (badge de color) y estado (activo/inactivo)</li>
+        <li>Badge "Vos" junto al usuario actual</li>
+        <li>Editar: nombre, rol y zona asignada de cualquier usuario (excepto owner y el propio usuario)</li>
+        <li>Activar/desactivar usuarios con un click</li>
+        <li>Modal informativo para invitar nuevos usuarios (desde Supabase Auth)</li>
+      </ul>
+
+      <h3>Tab Listas de Precios</h3>
+      <p>Administración de las listas de precios para clientes:</p>
+      <ul>
+        <li>Crear nueva lista (nombre, descripción, activa/inactiva)</li>
+        <li>Editar lista existente</li>
+        <li>Eliminar lista (limpia la referencia en los clientes que la tenían)</li>
+        <li>Cards con conteo de productos con precio asignado y clientes que usan esa lista</li>
+        <li>Modal "Ver precios" con tabla comparativa: producto, SKU, precio base, precio lista, diferencia %</li>
+      </ul>
+
+      <div class="info-box info">
+        <strong>Precios por producto</strong>
+        Los precios específicos por lista se configuran desde el modal de edición de cada producto (módulo Productos).
+        La tab de listas de precios es para gestionar las listas en sí y ver un resumen.
+      </div>
+
+      <hr>
+
+      <!-- ==================== PERMISOS ==================== -->
+      <h2 id="permisos">Sistema de Permisos por Rol</h2>
+      <div class="code-filename">js/utils/permissions.js</div>
+      <p>El sistema controla <strong>qué puede ver y hacer cada usuario</strong> según su rol. Funciona en dos niveles: el frontend oculta botones y menús, y el backend (RLS de Supabase) bloquea el acceso a datos.</p>
+
+      <h3>Jerarquía de roles</h3>
+<pre><code>owner (nivel 6)  →  Acceso total, configuración de la organización
+admin (nivel 5)  →  Acceso total al sistema
+gerente (nivel 4) →  Gestión operativa completa
+vendedor (nivel 3) →  Gestión de sus clientes y pedidos
+administrativo (nivel 2) →  Consulta y finanzas
+repartidor (nivel 1) →  Solo sus rutas y entregas</code></pre>
+
+      <h3>Qué ve cada rol en el menú lateral</h3>
+      <table>
+        <thead><tr><th>Rol</th><th>Menú visible</th></tr></thead>
+        <tbody>
+          <tr><td><span class="doc-badge red">owner / admin</span></td><td>Dashboard, Pipeline, Clientes, Productos, Pedidos, Rutas, Reportes, Configuración</td></tr>
+          <tr><td><span class="doc-badge blue">gerente</span></td><td>Dashboard, Pipeline, Clientes, Productos, Pedidos, Rutas, Reportes</td></tr>
+          <tr><td><span class="doc-badge green">vendedor</span></td><td>Dashboard, Pipeline, Clientes, Productos, Pedidos</td></tr>
+          <tr><td><span class="doc-badge blue">administrativo</span></td><td>Dashboard, Clientes, Productos, Pedidos</td></tr>
+          <tr><td><span class="doc-badge yellow">repartidor</span></td><td>Dashboard, Pedidos, Rutas</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Permisos por módulo</h3>
+      <p>Los botones "Nuevo", "Editar" y "Eliminar" se muestran u ocultan según el permiso del rol:</p>
+      <table>
+        <thead><tr><th>Módulo</th><th>Ver</th><th>Crear / Editar</th><th>Eliminar</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Clientes</strong></td><td>owner a administrativo</td><td>owner a vendedor</td><td>owner a gerente</td></tr>
+          <tr><td><strong>Productos</strong></td><td>owner a administrativo</td><td>owner a gerente</td><td>owner y admin</td></tr>
+          <tr><td><strong>Pedidos</strong></td><td>Todos</td><td>owner a vendedor</td><td>owner a gerente</td></tr>
+          <tr><td><strong>Pipeline</strong></td><td>owner a vendedor</td><td>owner a vendedor</td><td>owner a gerente</td></tr>
+          <tr><td><strong>Rutas</strong></td><td>owner a gerente + repartidor</td><td>owner a gerente</td><td>owner a gerente</td></tr>
+          <tr><td><strong>Configuración</strong></td><td>owner y admin</td><td>owner y admin</td><td>owner y admin</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Cómo usar en el código</h3>
+<pre><code>import Permissions from './utils/permissions.js';
+
+// ¿Puede el usuario crear productos?
+if (Permissions.can('crear', 'productos')) {
+  // Mostrar botón "Nuevo Producto"
+}
+
+// ¿Es admin o superior?
+if (Permissions.isAdmin()) {
+  // Mostrar configuración
+}
+
+// ¿Tiene al menos nivel de gerente?
+if (Permissions.hasMinRole('gerente')) {
+  // Acceso a reportes completos
+}
+
+// Obtener las rutas visibles del sidebar
+const rutas = Permissions.getVisibleRoutes();
+// → ['dashboard', 'clientes', 'productos', 'pedidos']</code></pre>
+
+      <hr>
+
+      <!-- ==================== NOTIFICACIONES ==================== -->
+      <h2 id="notificaciones">Notificaciones In-App</h2>
+      <div class="code-filename">js/utils/notifications.js + css/components/navbar.css</div>
+      <p>Sistema de notificaciones integrado en la barra superior con campana, badge de conteo y panel desplegable.</p>
+
+      <h3>Componentes</h3>
+      <table>
+        <thead><tr><th>Componente</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Campana</strong></td><td>Botón en el navbar con ícono de campana. Al hacer click abre/cierra el panel.</td></tr>
+          <tr><td><strong>Badge</strong></td><td>Círculo rojo con el número de notificaciones no leídas (se oculta si es 0, muestra "9+" si son más de 9).</td></tr>
+          <tr><td><strong>Panel desplegable</strong></td><td>Lista de notificaciones con ícono por tipo, título, mensaje, tiempo relativo. Se cierra al hacer click fuera.</td></tr>
+          <tr><td><strong>Marcar como leída</strong></td><td>Click en una notificación la marca como leída. Botón "Marcar leídas" marca todas.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Tipos de notificación</h3>
+      <table>
+        <thead><tr><th>Tipo</th><th>Ícono</th><th>Color</th><th>Ejemplo</th></tr></thead>
+        <tbody>
+          <tr><td><code>pedido</code></td><td>Bolsa</td><td>Azul</td><td>"Nuevo pedido #145 de Restaurante López"</td></tr>
+          <tr><td><code>stock</code></td><td>Etiqueta</td><td>Amarillo</td><td>"Stock bajo en Queso Cremoso (3 unidades)"</td></tr>
+          <tr><td><code>cliente</code></td><td>Persona</td><td>Verde</td><td>"Nuevo cliente registrado: Café Central"</td></tr>
+          <tr><td><code>alerta</code></td><td>Triángulo</td><td>Rojo</td><td>"Cliente Panadería Sur tiene deuda vencida"</td></tr>
+          <tr><td><code>sistema</code></td><td>Engranaje</td><td>Violeta</td><td>"Se actualizó la lista de precios Tarifa A"</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Funcionamiento técnico</h3>
+      <ul>
+        <li>Las notificaciones se cargan desde la tabla <code>notificaciones</code> en Supabase</li>
+        <li>Se muestran las últimas 30 notificaciones del usuario actual</li>
+        <li>Se refresca automáticamente cada 60 segundos (polling)</li>
+        <li>Al hacer click en una notificación con <code>link_accion</code>, navega a esa ruta</li>
+        <li>En mobile, el panel ocupa todo el ancho de la pantalla</li>
+      </ul>
+
+      <h3>Tabla en Supabase</h3>
+      <p>La tabla <code>notificaciones</code> ya existe desde la Fase 1:</p>
+      <table>
+        <thead><tr><th>Campo</th><th>Tipo</th><th>Uso</th></tr></thead>
+        <tbody>
+          <tr><td><code>usuario_id</code></td><td>UUID FK</td><td>A quién va dirigida</td></tr>
+          <tr><td><code>tipo</code></td><td>TEXT</td><td>pedido, stock, cliente, alerta, sistema</td></tr>
+          <tr><td><code>titulo</code></td><td>TEXT</td><td>Título corto de la notificación</td></tr>
+          <tr><td><code>mensaje</code></td><td>TEXT</td><td>Detalle (opcional)</td></tr>
+          <tr><td><code>leida</code></td><td>BOOLEAN</td><td>Si ya fue leída</td></tr>
+          <tr><td><code>link_accion</code></td><td>TEXT</td><td>Ruta a navegar (ej: #/pedidos)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="info-box tip">
+        <strong>Crear notificaciones</strong>
+        Las notificaciones se crean insertando registros en la tabla <code>notificaciones</code> desde Supabase.
+        En el futuro (Fase 8), se crearán automáticamente mediante triggers o workflows.
+      </div>
+
+      <hr>
+
+      <!-- ==================== CSV EXPORT ==================== -->
+      <h2 id="csv-export">Exportación CSV</h2>
+      <div class="code-filename">js/utils/csv.js</div>
+      <p>Todos los listados principales (Clientes, Productos, Pedidos) tienen un botón <strong>"CSV"</strong> que permite descargar los datos en formato CSV, compatible con Excel y Google Sheets.</p>
+
+      <h3>Características</h3>
+      <ul>
+        <li><strong>Respeta filtros activos:</strong> Si tenés un filtro de búsqueda o de tipo/estado, solo se exportan los registros filtrados</li>
+        <li><strong>Sin límite de paginación:</strong> Se exportan TODOS los registros que coincidan con los filtros, no solo la página actual</li>
+        <li><strong>Formato Excel-friendly:</strong> Usa BOM UTF-8 para que Excel muestre correctamente tildes y eñes</li>
+        <li><strong>Separador punto y coma (;):</strong> Compatible con Excel en configuración regional español/latino</li>
+        <li><strong>Nombre con fecha:</strong> El archivo se descarga con formato <code>clientes_20260217.csv</code></li>
+      </ul>
+
+      <h3>Módulos con exportación</h3>
+      <table>
+        <thead><tr><th>Módulo</th><th>Columnas exportadas</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Clientes</strong></td><td>Nombre, Razón Social, Tipo, Estado, Teléfono, Email, Dirección, Ciudad, Provincia, Vendedor, Lista de Precios, Línea de Crédito, Saldo Pendiente, Scoring, Días Reparto</td></tr>
+          <tr><td><strong>Productos</strong></td><td>SKU, Nombre, Categoría, Formato, Precio Base, Stock Actual, Stock Mínimo, Proveedor, Vencimiento, Estado</td></tr>
+          <tr><td><strong>Pedidos</strong></td><td># Pedido, Cliente, Vendedor, Estado, Total, Método de Pago, Fecha Creación, Fecha Entrega Programada, Fecha Entrega Real, Observaciones</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Cómo usar en el código</h3>
+<pre><code>import CSV from './utils/csv.js';
+
+CSV.export(data, [
+  { key: 'nombre', label: 'Nombre' },
+  { key: 'email', label: 'Email' },
+  { label: 'Total', format: row => row.total || 0 },  // con función custom
+  { key: 'vendedor.nombre', label: 'Vendedor' },       // soporta dot notation
+], 'nombre_archivo');</code></pre>
+
+      <hr>
+
+      <!-- ==================== VALIDACIONES ==================== -->
+      <h2 id="validaciones">Validaciones Inline</h2>
+      <div class="code-filename">js/utils/validate.js</div>
+      <p>Sistema de validación visual que muestra errores <strong>debajo de cada campo</strong> del formulario, con bordes de color (rojo para error, verde para válido) y mensajes descriptivos.</p>
+
+      <h3>Funcionamiento</h3>
+      <ul>
+        <li><strong>Al enviar:</strong> Se validan todos los campos y se muestra el primer error con foco automático</li>
+        <li><strong>En tiempo real (blur):</strong> Al salir de un campo, se valida inmediatamente y se muestra el resultado</li>
+        <li><strong>Al escribir:</strong> Si un campo tiene error y el usuario empieza a corregirlo, el error se limpia</li>
+      </ul>
+
+      <h3>Tipos de validación soportados</h3>
+      <table>
+        <thead><tr><th>Regla</th><th>Descripción</th><th>Ejemplo</th></tr></thead>
+        <tbody>
+          <tr><td><code>required</code></td><td>Campo obligatorio</td><td><code>{ required: true }</code></td></tr>
+          <tr><td><code>minLength</code></td><td>Longitud mínima</td><td><code>{ minLength: 2 }</code></td></tr>
+          <tr><td><code>maxLength</code></td><td>Longitud máxima</td><td><code>{ maxLength: 100 }</code></td></tr>
+          <tr><td><code>type: 'email'</code></td><td>Formato de email válido</td><td><code>{ type: 'email' }</code></td></tr>
+          <tr><td><code>type: 'phone'</code></td><td>Teléfono válido (min 8 dígitos)</td><td><code>{ type: 'phone' }</code></td></tr>
+          <tr><td><code>type: 'number'</code></td><td>Número válido con min/max</td><td><code>{ type: 'number', min: 0 }</code></td></tr>
+          <tr><td><code>type: 'url'</code></td><td>URL válida</td><td><code>{ type: 'url' }</code></td></tr>
+          <tr><td><code>custom</code></td><td>Función personalizada</td><td><code>{ custom: (val) => val === 'x' ? 'Error' : null }</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Módulos con validación</h3>
+      <ul>
+        <li><strong>Clientes:</strong> Nombre (obligatorio, min 2 chars), tipo (obligatorio), email (formato), teléfono (formato)</li>
+        <li><strong>Productos:</strong> SKU (obligatorio, min 2), nombre (obligatorio, min 2), categoría (obligatorio), precio base (obligatorio, >= 0)</li>
+      </ul>
+
+      <h3>Cómo usar en el código</h3>
+<pre><code>import Validate from './utils/validate.js';
+
+// Definir reglas
+const rules = {
+  nombre: { required: true, minLength: 2, label: 'Nombre' },
+  email: { type: 'email', label: 'Email' },
+  precio: { required: true, type: 'number', min: 0, label: 'Precio' },
+};
+
+// Validar al enviar
+if (!Validate.form(formElement, rules)) return;
+
+// Validar en tiempo real (on blur)
+Validate.bindRealtime(formElement, rules);</code></pre>
+
+      <hr>
+
+      <h2 id="busqueda-global">Búsqueda Global</h2>
+      <div class="code-filename">js/utils/global-search.js</div>
+      <p>Buscador rápido accesible desde cualquier pantalla con <code>Ctrl+K</code> o click en el ícono de lupa del navbar.</p>
+
+      <h3>Características</h3>
+      <ul>
+        <li><strong>Multi-módulo</strong> — Busca simultáneamente en clientes, productos y pedidos</li>
+        <li><strong>Búsqueda en paralelo</strong> — Usa <code>Promise.all</code> para consultar las 3 tablas a la vez</li>
+        <li><strong>Debounce 300ms</strong> — Evita consultas excesivas mientras se escribe</li>
+        <li><strong>Resultados agrupados</strong> — Muestra hasta 5 resultados por categoría con íconos</li>
+        <li><strong>Navegación directa</strong> — Click en un resultado lleva al módulo correspondiente</li>
+        <li><strong>Atajo de teclado</strong> — <code>Ctrl+K</code> / <code>Cmd+K</code> para abrir/cerrar</li>
+        <li><strong>Escape para cerrar</strong> — Se cierra con Escape o click fuera</li>
+      </ul>
+
+      <h3>Cómo funciona</h3>
+<pre><code>// Se inicializa automáticamente desde navbar.js
+GlobalSearch.init();
+
+// Búsqueda: consulta en paralelo
+const [clientes, productos, pedidos] = await Promise.all([
+  supabase.from('clientes').select('id, nombre_establecimiento, ciudad')
+    .ilike('nombre_establecimiento', `%${query}%`).limit(5),
+  supabase.from('productos').select('id, nombre, categoria, sku')
+    .ilike('nombre', `%${query}%`).limit(5),
+  supabase.from('pedidos').select('id, numero_pedido, total, estado')
+    .eq('numero_pedido', parseInt(query) || 0).limit(5),
+]);</code></pre>
+
+      <hr>
+
+      <h2 id="filtros-avanzados">Filtros Avanzados Combinados</h2>
+      <p>Panel colapsable de filtros avanzados disponible en Clientes, Productos y Pedidos. Permite combinar múltiples criterios y guardar presets de filtros.</p>
+
+      <h3>Filtros por módulo</h3>
+      <table>
+        <thead><tr><th>Módulo</th><th>Filtros básicos</th><th>Filtros avanzados</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Clientes</strong></td>
+            <td>Búsqueda, tipo, estado</td>
+            <td>Fecha última compra (desde/hasta), scoring mín/máx, vendedor asignado</td>
+          </tr>
+          <tr>
+            <td><strong>Productos</strong></td>
+            <td>Búsqueda, categoría, stock</td>
+            <td>Precio mín/máx, estado activo/inactivo</td>
+          </tr>
+          <tr>
+            <td><strong>Pedidos</strong></td>
+            <td>Búsqueda, estado</td>
+            <td>Fecha desde/hasta, vendedor, total mín/máx</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Presets de filtros</h3>
+      <ul>
+        <li><strong>Guardar</strong> — Guarda la combinación actual de filtros con un nombre personalizado</li>
+        <li><strong>Cargar</strong> — Aplica un preset guardado previamente</li>
+        <li><strong>Almacenamiento</strong> — Se guardan en <code>localStorage</code> por módulo (<code>crm_filter_presets_clientes</code>, etc.)</li>
+      </ul>
+
+      <h3>Badges activos</h3>
+      <p>Los filtros avanzados activos se muestran como badges debajo de la barra de filtros. Cada badge tiene un botón <code>&times;</code> para eliminar ese filtro individual.</p>
+
+      <hr>
+
+      <h2 id="sort-tablas">Ordenamiento de Tablas por Columna</h2>
+      <p>Las tablas de Clientes, Productos y Pedidos permiten ordenar por cualquier columna clickeable.</p>
+
+      <h3>Funcionamiento</h3>
+      <ul>
+        <li><strong>Click en header</strong> — Ordena ascendente. Segundo click invierte a descendente</li>
+        <li><strong>Indicador visual</strong> — Flechas ↑ ↓ en la columna activa, ⇕ en las demás</li>
+        <li><strong>Server-side</strong> — El orden se aplica en la query de Supabase (<code>.order()</code> dinámico)</li>
+        <li><strong>Reset de página</strong> — Al cambiar orden, vuelve a la página 1</li>
+      </ul>
+
+      <h3>Columnas ordenables</h3>
+      <table>
+        <thead><tr><th>Módulo</th><th>Columnas</th></tr></thead>
+        <tbody>
+          <tr><td>Clientes</td><td>nombre_establecimiento, tipo_cliente, estado_lead, saldo_pendiente, scoring</td></tr>
+          <tr><td>Productos</td><td>nombre, categoria, precio_base, stock_actual, fecha_vencimiento</td></tr>
+          <tr><td>Pedidos</td><td>numero_pedido, estado, total, created_at, fecha_entrega_programada</td></tr>
+        </tbody>
+      </table>
+
+      <hr>
+
+      <h2 id="pdf-reportes">Exportación de Reportes a PDF</h2>
+      <div class="code-filename">js/pages/reportes.js → exportPDF()</div>
+      <p>Botón "PDF" en la sección de Reportes que genera un documento PDF con los KPIs y tablas del tab activo.</p>
+
+      <h3>Contenido del PDF</h3>
+      <ul>
+        <li><strong>Header</strong> — Nombre de la organización, tab activo, período seleccionado, fecha de generación</li>
+        <li><strong>KPIs</strong> — Todos los indicadores clave del tab actual</li>
+        <li><strong>Tablas</strong> — Datos tabulares con headers y todas las filas</li>
+        <li><strong>Footer</strong> — Numeración de páginas</li>
+        <li><strong>Paginación automática</strong> — Salta de página cuando el contenido excede el espacio</li>
+      </ul>
+
+      <h3>Dependencia</h3>
+      <p>Usa <code>jsPDF 2.5.2</code> cargada dinámicamente desde CDN (misma librería que pedidos).</p>
+
+      <hr>
+
+      <h2 id="error-handler">Manejo Robusto de Errores</h2>
+      <div class="code-filename">js/utils/error-handler.js</div>
+      <p>Sistema centralizado que detecta y maneja errores de red, sesión expirada y otros problemas.</p>
+
+      <h3>Detección automática</h3>
+      <ul>
+        <li><strong>Offline/Online</strong> — Detecta pérdida de conexión y muestra banner persistente</li>
+        <li><strong>Sesión expirada</strong> — Detecta tokens JWT inválidos y redirige al login</li>
+        <li><strong>Errores de red</strong> — Identifica "Failed to fetch" y "NetworkError"</li>
+        <li><strong>Rate limiting</strong> — Detecta errores 429 y muestra aviso</li>
+      </ul>
+
+      <h3>Cómo usar</h3>
+<pre><code>import ErrorHandler from './utils/error-handler.js';
+
+// Se inicializa automáticamente en app.js
+ErrorHandler.init();
+
+// Usar en bloques catch
+try {
+  await someApiCall();
+} catch (err) {
+  ErrorHandler.handle(err, 'cargar clientes');
+}
+
+// O envolver funciones async
+const safeFn = ErrorHandler.wrap(async () => {
+  // ...código que puede fallar
+}, 'guardar pedido');</code></pre>
+
+      <hr>
+
+      <h2 id="onboarding">Flujo de Onboarding</h2>
+      <div class="code-filename">js/utils/onboarding.js</div>
+      <p>Asistente de bienvenida para organizaciones nuevas (sin datos). Se muestra automáticamente al detectar 0 clientes Y 0 productos.</p>
+
+      <h3>Pasos del onboarding</h3>
+      <ol>
+        <li><strong>Bienvenida</strong> — Presentación del CRM y sus funcionalidades</li>
+        <li><strong>Configurar empresa</strong> — Enlace a la página de configuración para personalizar nombre, moneda y branding</li>
+        <li><strong>Cargar datos</strong> — Enlace a clientes y productos para comenzar a cargar información</li>
+      </ol>
+
+      <h3>Funcionamiento</h3>
+      <ul>
+        <li><strong>Detección</strong> — Consulta count de clientes y productos en Supabase</li>
+        <li><strong>No repetir</strong> — Guarda en <code>localStorage</code> la clave <code>onboarding_done_{orgId}</code></li>
+        <li><strong>Overlay modal</strong> — Se muestra como overlay con animación fade-in</li>
+        <li><strong>Responsive</strong> — Card centrada adaptable a mobile</li>
+      </ul>
+
+      <hr>
+
+      <h2 id="mod-toast">Módulo Toast</h2>
+      <div class="code-filename">js/utils/toast.js</div>
+      <p>Sistema de notificaciones flotantes. Uso:</p>
+<pre><code>import Toast from './utils/toast.js';
+
+Toast.success('Cliente creado correctamente');
+Toast.error('Error al guardar');
+Toast.warning('Stock bajo en producto X');</code></pre>
+
+      <!-- ==================== GUÍAS ==================== -->
+      <h2 id="agregar-pagina">Cómo agregar una nueva página</h2>
+      <p>Para agregar un nuevo módulo (ej: Clientes), seguir estos pasos:</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Crear el archivo CSS</h4>
+            <p>Crear <code>css/components/clientes.css</code> con los estilos de la página. Importarlo en <code>index.html</code>.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-content">
+            <h4>Crear el archivo JS</h4>
+            <p>Crear <code>js/pages/clientes.js</code> con la estructura:</p>
+<pre><code>import supabase from '../config/supabase.js';
+
+const ClientesPage = {
+  async render(container) {
+    container.innerHTML = `...tu HTML...`;
+    this.initEvents();
+    await this.loadData();
+  },
+
+  initEvents() {
+    // Vincular botones y formularios
+  },
+
+  async loadData() {
+    const { data } = await supabase
+      .from('clientes')
+      .select('*')
+      .order('created_at', { ascending: false });
+    // Renderizar data
+  },
+};
+
+export default ClientesPage;</code></pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-content">
+            <h4>Registrar la ruta</h4>
+            <p>En <code>js/app.js</code>, importar el módulo y registrar la ruta:</p>
+<pre><code>import ClientesPage from './pages/clientes.js';
+
+// Dentro de loadApp():
+Router.register('clientes', (el) => ClientesPage.render(el));</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== ROLES ==================== -->
+      <h2 id="roles">Roles del Sistema</h2>
+
+      <p>Para una descripción detallada de permisos por módulo, ver la sección <a href="#permisos">Sistema de Permisos por Rol</a>.</p>
+
+      <table>
+        <thead><tr><th>Rol</th><th>Nivel</th><th>Acceso</th><th>Restricciones</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="doc-badge red">owner</span></td>
+            <td>6</td>
+            <td>Acceso completo + configuración de la organización</td>
+            <td>Ninguna. Es quien compra el CRM.</td>
+          </tr>
+          <tr>
+            <td><span class="doc-badge red">admin</span></td>
+            <td>5</td>
+            <td>Acceso completo a todo el sistema</td>
+            <td>Mismos permisos que owner</td>
+          </tr>
+          <tr>
+            <td><span class="doc-badge blue">gerente</span></td>
+            <td>4</td>
+            <td>Dashboard, Pipeline, Clientes, Productos, Pedidos, Rutas, Reportes</td>
+            <td>No puede gestionar usuarios ni configuración de la org</td>
+          </tr>
+          <tr>
+            <td><span class="doc-badge green">vendedor</span></td>
+            <td>3</td>
+            <td>Dashboard, Pipeline, Clientes, Productos, Pedidos</td>
+            <td>No elimina productos ni clientes. No ve reportes ni rutas</td>
+          </tr>
+          <tr>
+            <td><span class="doc-badge blue">administrativo</span></td>
+            <td>2</td>
+            <td>Dashboard, Clientes, Productos, Pedidos (solo ver)</td>
+            <td>No crea ni edita. Ve reporte de morosidad</td>
+          </tr>
+          <tr>
+            <td><span class="doc-badge yellow">repartidor</span></td>
+            <td>1</td>
+            <td>Dashboard, Pedidos (ver + cambiar estado), Rutas</td>
+            <td>No ve precios, no accede a clientes ni pipeline</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ==================== CHANGELOG ==================== -->
+      <h2 id="changelog">Changelog / Historial de Cambios</h2>
+
+      <h3>Sesión 13 — Bugs &amp; Correcciones (GAPS III)</h3>
+
+      <h4>Lista de precios del cliente aplicada en pedidos</h4>
+      <p>Al seleccionar un cliente con lista de precios asignada, se carga <code>precios_por_lista</code> y los precios de la lista sobreescriben el precio base al agregar productos. Se muestra indicador "★ lista" en el dropdown.</p>
+
+      <h4>organizacion_id en líneas al duplicar pedido</h4>
+      <p>Se corrigió <code>duplicarPedido()</code> para incluir <code>organizacion_id</code> en cada línea de <code>productos_pedido</code>, evitando que las líneas queden invisibles o fallen por RLS.</p>
+
+      <h4>saldo_pendiente actualizado al crear pedido</h4>
+      <p>Al guardar un pedido nuevo, se hace un UPDATE en <code>clientes.saldo_pendiente += total</code>. El semáforo de crédito y el control de límite crediticio ahora reflejan la deuda real acumulada.</p>
+
+      <h4>fecha_ultima_compra actualizada al entregar</h4>
+      <p>Al cambiar el estado de un pedido a <code>entregado</code> (desde el módulo Pedidos o desde Logística al marcar una parada), se actualiza <code>clientes.fecha_ultima_compra = now()</code>. Los reportes de inactividad y el semáforo usan datos reales.</p>
+
+      <h4>Listado global de devoluciones</h4>
+      <p>Botón "Devoluciones" en el header de Pedidos. Abre modal con tabla completa de todas las devoluciones: fecha, pedido #, cliente, productos devueltos, motivo, estado con badge (pendiente/aprobada/rechazada).</p>
+
+      <h4>exportarDatos() implementado</h4>
+      <p>El botón "Exportar todos los datos (ZIP)" en Configuración ahora funciona. Descarga un ZIP con 5 CSVs: clientes, productos, pedidos, cobros, usuarios. JSZip se carga lazy desde CDN.</p>
+
+      <h4>Reportes: Total Facturado sin cancelados</h4>
+      <p>En <code>tabVentas()</code>, <code>totalVentas</code> y <code>ticketProm</code> ahora usan solo pedidos no cancelados. El gráfico de evolución diaria y métodos de pago también excluyen cancelados. El KPI "Total Pedidos" pasó a llamarse "Pedidos Activos".</p>
+
+      <h4>Reportes: Filtro de período en tab Productos corregido</h4>
+      <p><code>tabProductos()</code> usaba <code>.gte('pedido.created_at', desde)</code> sobre una relación embebida, que Supabase JS ignora silenciosamente. Se corrigió con un enfoque de dos pasos: primero se traen los IDs de pedidos del período (excluyendo cancelados), luego se hace <code>.in('pedido_id', pedidoIds)</code> en <code>productos_pedido</code>.</p>
+
+      <h4>Semáforo de crédito: lógica corregida</h4>
+      <p>La función <code>renderSemaforo()</code> y <code>getSemaforoClass()</code> ahora calculan correctamente los días vencidos: <code>fechaVence = fecha_ultima_compra + dias_credito</code>. Si <code>diasVencido ≤ 0</code> → Verde, ≤ 7 → Amarillo, >7 → Rojo. Un cliente que pagó y no compró en 60 días ya no aparece como moroso.</p>
+
+      <h4>Info-box de Usuarios corregido</h4>
+      <p>El texto del info-box en Configuración &gt; Usuarios decía "el usuario debe registrarse solo primero". Ahora describe correctamente el flujo de invitaciones: generar link → compartir → el invitado completa el registro automáticamente en la organización.</p>
+
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/pages/pedidos.js</code> — agregarLinea con precios de lista, loadPreciosPorLista(), duplicarPedido organizacion_id, savePedido saldo_pendiente, estadoSelector fecha_ultima_compra, openModalDevoluciones()</li>
+        <li><code>js/pages/logistica.js</code> — cliente_id en paradas, fecha_ultima_compra al marcar entregado</li>
+        <li><code>js/pages/reportes.js</code> — tabVentas sin cancelados, tabProductos two-step query</li>
+        <li><code>js/pages/clientes.js</code> — renderSemaforo() y getSemaforoClass() lógica corregida</li>
+        <li><code>js/pages/configuracion.js</code> — exportarDatos() implementado, info-box texto corregido</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 12 — Gaps Adicionales II (Importantes y Menores)</h3>
+
+      <h4>Actualización masiva de precios</h4>
+      <p>Botón "Precios" en el header de Productos (visible para admin/owner/gerente). Modal con filtro por categoría, tipo de ajuste (% aumento/descuento o valor fijo ±) y preview de cuántos productos se afectarán. Batch upsert via Supabase.</p>
+
+      <h4>Remito de entrega (sin precios)</h4>
+      <p>Botón "Remito" en el footer del modal de detalle de pedido. Abre nueva ventana con HTML de impresión: encabezado con datos del cliente, tabla de productos con cantidades (sin precios), 3 líneas de firma (receptor, DNI, repartidor). Llama <code>window.print()</code> automáticamente.</p>
+
+      <h4>Cierre de caja / Cobros del día</h4>
+      <p>Widget "Cobros de hoy" en el Dashboard (antes de Alertas). Muestra el total cobrado en el día con badge de cantidad, desglose por método de pago ordenado por monto. Consulta <code>cobros</code> con filtro UTC de medianoche a medianoche.</p>
+
+      <h4>Historial de precios por producto</h4>
+      <p>Nueva tabla <code>historial_precios</code>. Al guardar un producto, si <code>precio_base</code> cambió se inserta registro automáticamente con precio anterior, nuevo, usuario y fecha. En el modal de edición aparece sección "Historial de precios" con los últimos 10 cambios con íconos ▲▼ en rojo/verde.</p>
+
+      <h4>Persistencia de filtros entre navegación</h4>
+      <p><code>sessionStorage</code> en Productos, Pedidos y Clientes. Al volver a cualquier página los filtros activos se restauran en el objeto interno y en los inputs del DOM vía <code>_restoreFilters()</code>.</p>
+
+      <p><strong>Archivos creados:</strong></p>
+      <ul>
+        <li><code>supabase/11_historial_precios.sql</code> — Tabla historial_precios + índices + RLS</li>
+      </ul>
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/pages/productos.js</code> — Botón "Precios", openModalActualizarPrecios(), historial en modal edición, _restoreFilters()</li>
+        <li><code>js/pages/pedidos.js</code> — Botón "Remito", imprimirRemito(), _restoreFilters()</li>
+        <li><code>js/pages/dashboard.js</code> — Widget cobros del día, loadCierreCaja()</li>
+        <li><code>js/pages/clientes.js</code> — _restoreFilters()</li>
+        <li><code>css/styles.css</code> — Estilos historial precios, precio-preview-box, cierre de caja</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 11 — Gaps Adicionales I (Críticos e Importantes)</h3>
+
+      <h4>Descuento en pedido</h4>
+      <p>Fila "Descuento" entre productos y total en creación y edición de pedido. Select tipo (% / monto fijo) + input de valor. Recálculo en tiempo real. Guarda en columnas <code>descuento_tipo</code>, <code>descuento_valor</code>, <code>descuento_monto</code>.</p>
+
+      <h4>Olvidé mi contraseña</h4>
+      <p>Link en la pantalla de login. Muestra vista alternativa con campo de email. Llama <code>supabase.auth.resetPasswordForEmail()</code> con <code>redirectTo</code> al origen. Muestra mensaje de éxito y botón de volver.</p>
+
+      <h4>Sistema de invitaciones de usuarios</h4>
+      <p>Modal completo en Configuración &gt; Usuarios: nombre + email + rol. Crea registro en tabla <code>invitaciones</code> con token UUID y expiración 7 días. Muestra link copiable. En login.js, si hay <code>?invite=token</code> en la URL, llama RPC <code>get_invitacion_by_token()</code>, prellenado del formulario y registro automático vinculado a la organización. RPCs con <code>SECURITY DEFINER</code> para no requerir auth.</p>
+
+      <h4>Historial de pedidos en ficha de cliente</h4>
+      <p>5to tab "Pedidos" en la ficha de cliente. Lista pedidos con número, fecha, estado badge, vendedor, total. Filtro por estado. Lazy-load al primer clic. Hasta 50 pedidos, badge con conteo.</p>
+
+      <h4>Verificación de línea de crédito al crear pedido</h4>
+      <p>Al seleccionar cliente en nuevo pedido, se muestra panel inline con saldo pendiente, límite de crédito y disponible. Se actualiza en tiempo real al modificar productos. Warning en rojo si el total supera el crédito disponible.</p>
+
+      <h4>Alertas de stock bajo en Dashboard</h4>
+      <p>Widget dedicado (se oculta si no hay alertas). Dos grupos: "Sin stock" (rojo) y "Stock bajo" (amarillo). Muestra nombre, SKU, cantidad actual vs. mínimo. Link a Productos.</p>
+
+      <h4>WhatsApp desde pedido</h4>
+      <p>Botón en footer del modal de detalle de pedido. Genera link <code>wa.me/?text=...</code> con mensaje formateado: org, número de pedido, cliente, fecha entrega, detalle de productos, total.</p>
+
+      <h4>Perfil propio del usuario</h4>
+      <p>Tab "Mi Perfil" en Configuración (todos los roles). Cambio de nombre + teléfono (UPDATE en <code>usuarios</code>) y cambio de contraseña (via <code>supabase.auth.updateUser</code>). Actualiza nombre en sidebar en tiempo real.</p>
+
+      <h4>Productos frecuentes al crear pedido</h4>
+      <p>Al seleccionar cliente en "Nuevo Pedido", se cargan los últimos 8 pedidos y se extraen hasta 5 productos únicos como chips clickeables. Al hacer clic en un chip se agrega la línea al pedido.</p>
+
+      <h4>Cobro vinculado a pedido específico</h4>
+      <p>En el modal "Registrar Pago" se agrega campo select opcional con pedidos activos del cliente (últimos 20, sin cancelados). Se guarda <code>pedido_id</code> en <code>cobros</code>. En el listado se muestra badge con número de pedido.</p>
+
+      <p><strong>Archivos creados:</strong></p>
+      <ul>
+        <li><code>supabase/09_pedidos_descuento.sql</code> — ALTER TABLE pedidos ADD columnas descuento</li>
+        <li><code>supabase/10_invitaciones.sql</code> — Tabla invitaciones + RPCs SECURITY DEFINER</li>
+        <li><code>supabase/08_cobros_pedido_id.sql</code> — ALTER TABLE cobros ADD pedido_id</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 10 — Gaps Importantes y Nice-to-Have</h3>
+
+      <h4>Gestión de devoluciones (NCR)</h4>
+      <p>Botón "Devolver" en pedidos entregados. Modal para seleccionar productos y cantidades a devolver con motivo. Genera nota de crédito automática que descuenta el <code>saldo_pendiente</code> del cliente. Tablas: <code>devoluciones</code> + <code>devoluciones_lineas</code>.</p>
+
+      <h4>Duplicar pedido</h4>
+      <p>Botón "Duplicar" en detalle del pedido. Crea nuevo pedido con mismo cliente, productos y precios. Estado <code>pendiente</code>, número nuevo.</p>
+
+      <h4>Ajuste manual de stock</h4>
+      <p>Botón por fila en Productos. Modal con tipo (entrada/salida/absoluto), cantidad y motivo. Actualización inmediata en Supabase.</p>
+
+      <h4>Notas internas en cliente</h4>
+      <p>Tab "Notas" en la ficha del cliente. Textarea guardado en columna <code>notas_internas</code>. Visible para todos los roles.</p>
+
+      <h4>Metas de vendedor</h4>
+      <p>Tab Vendedores en Reportes: grid de progreso con barra de color (rojo/amarillo/azul/verde según %). Modal "Gestionar metas" para gerentes+, permite upsert de meta mensual por vendedor. Tabla <code>metas_vendedor</code>.</p>
+
+      <p><strong>Archivos creados:</strong></p>
+      <ul>
+        <li><code>supabase/06_devoluciones.sql</code> — Tablas devoluciones + devoluciones_lineas + RLS</li>
+        <li><code>supabase/07_metas_vendedor.sql</code> — Tabla metas_vendedor + RLS</li>
+        <li><code>supabase/05_notas_cliente.sql</code> — Columna notas_internas en clientes</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 9 — Gaps Críticos para Producción</h3>
+
+      <h4>Registro de cobros / pagos</h4>
+      <p>Tab "Cobros" en la ficha del cliente. Historial de cobros con fecha, monto, método de pago, usuario que registró. Botón "Registrar Pago" con modal. Actualiza automáticamente el <code>saldo_pendiente</code> del cliente. Widget de cobros en Dashboard.</p>
+
+      <h4>Timeline de interacciones manual</h4>
+      <p>Tab "Timeline" en la ficha del cliente. Registro de llamadas, visitas, notas, emails con tipo, contenido y resultado. Lazy-load al abrir el tab. Visualización cronológica con íconos por tipo.</p>
+
+      <h4>Import CSV masivo</h4>
+      <p>Modal completo con 4 pasos: subir archivo → preview de primeras filas → importar → resultado con éxitos/errores. Soporta clientes y productos. Auto-detección de separador (coma/punto y coma). Batch de 50 filas para no saturar la API.</p>
+
+      <p><strong>Archivos creados:</strong></p>
+      <ul>
+        <li><code>supabase/04_cobros.sql</code> — Tabla cobros + RLS</li>
+        <li><code>js/utils/import-csv.js</code> — Módulo de importación CSV con wizard 4 pasos</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 8 — Mejoras de Prioridad Baja</h3>
+
+      <h4>Ordenamiento de tablas por columna</h4>
+      <p>Click en headers de columna para ordenar ascendente/descendente con indicadores visuales (flechas).</p>
+      <ul>
+        <li>Implementado en Clientes, Productos y Pedidos</li>
+        <li>Orden server-side con <code>.order()</code> dinámico de Supabase</li>
+        <li>Clases CSS: <code>.th-sortable</code>, <code>.sort-asc</code>, <code>.sort-desc</code></li>
+      </ul>
+
+      <h4>Empty states con ilustraciones</h4>
+      <p>CSS para estados vacíos con clase <code>.empty-state</code> y estilos mejorados para tablas sin datos.</p>
+
+      <h4>Loading states y protección de doble-click</h4>
+      <p>CSS para botones en estado de carga (<code>.btn-loading</code>) con spinner inline y <code>pointer-events: none</code>.</p>
+
+      <h4>Manejo robusto de errores</h4>
+      <p>Nuevo módulo <code>ErrorHandler</code> que detecta offline/online, sesión expirada, errores de red y rate limiting.</p>
+      <ul>
+        <li>Banner persistente para errores de conexión</li>
+        <li>Redirección automática al login cuando la sesión expira</li>
+        <li>Método <code>wrap()</code> para envolver funciones async</li>
+      </ul>
+
+      <h4>Búsqueda global desde navbar</h4>
+      <p>Buscador con <code>Ctrl+K</code> que consulta clientes, productos y pedidos en paralelo.</p>
+      <ul>
+        <li>Resultados agrupados por categoría con íconos</li>
+        <li>Debounce de 300ms, máximo 5 resultados por tabla</li>
+        <li>Navegación directa al módulo correspondiente</li>
+      </ul>
+
+      <h4>Exportación de reportes a PDF</h4>
+      <p>Botón PDF en la página de Reportes que genera un documento con KPIs y tablas del tab activo.</p>
+      <ul>
+        <li>Usa jsPDF 2.5.2 cargada desde CDN</li>
+        <li>Header con organización, período y fecha de generación</li>
+        <li>Paginación automática y footer con numeración</li>
+      </ul>
+
+      <h4>Filtros avanzados combinados</h4>
+      <p>Panel colapsable "Avanzados" en Clientes, Productos y Pedidos con filtros adicionales.</p>
+      <ul>
+        <li><strong>Clientes:</strong> fecha última compra, scoring mín/máx, vendedor</li>
+        <li><strong>Productos:</strong> precio mín/máx, estado activo/inactivo</li>
+        <li><strong>Pedidos:</strong> fecha desde/hasta, vendedor, total mín/máx</li>
+        <li><strong>Presets:</strong> guardar/cargar combinaciones de filtros en localStorage</li>
+        <li><strong>Badges:</strong> filtros activos visibles como badges removibles</li>
+      </ul>
+
+      <h4>Flujo de onboarding</h4>
+      <p>Asistente de 3 pasos para organizaciones nuevas (0 clientes + 0 productos).</p>
+      <ul>
+        <li>Bienvenida → Configurar empresa → Cargar datos</li>
+        <li>Se guarda en localStorage para no repetirse</li>
+      </ul>
+
+      <p><strong>Archivos creados:</strong></p>
+      <ul>
+        <li><code>js/utils/error-handler.js</code> — Manejo centralizado de errores (~120 líneas)</li>
+        <li><code>js/utils/global-search.js</code> — Búsqueda global multi-módulo (~180 líneas)</li>
+        <li><code>js/utils/onboarding.js</code> — Flujo de onboarding (~130 líneas)</li>
+      </ul>
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>css/styles.css</code> — Estilos para sort, empty states, loading, búsqueda global, error banner, onboarding, filtros avanzados</li>
+        <li><code>js/components/navbar.js</code> — Búsqueda global + Ctrl+K</li>
+        <li><code>js/app.js</code> — ErrorHandler.init() + Onboarding check</li>
+        <li><code>js/pages/clientes.js</code> — Sort, filtros avanzados con presets</li>
+        <li><code>js/pages/productos.js</code> — Sort, filtros avanzados con presets</li>
+        <li><code>js/pages/pedidos.js</code> — Sort, filtros avanzados con presets</li>
+        <li><code>js/pages/reportes.js</code> — Botón PDF + exportPDF()</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 7 — Mejoras de Prioridad Media</h3>
+
+      <h4>Notificaciones In-App</h4>
+      <p>Sistema completo de notificaciones con campana en el navbar, badge de conteo y panel desplegable.</p>
+      <ul>
+        <li><strong>Campana con badge</strong> — Muestra cantidad de notificaciones no leídas</li>
+        <li><strong>Panel desplegable</strong> — Lista con íconos por tipo, tiempo relativo, estado leída/no leída</li>
+        <li><strong>Marcar como leída</strong> — Individual (click) o todas a la vez</li>
+        <li><strong>Polling automático</strong> — Se refresca cada 60 segundos</li>
+        <li><strong>Responsive</strong> — En mobile el panel ocupa todo el ancho</li>
+      </ul>
+
+      <h4>Exportación CSV</h4>
+      <p>Botón "CSV" en los listados de Clientes, Productos y Pedidos para descargar datos en formato CSV.</p>
+      <ul>
+        <li><strong>Respeta filtros</strong> — Solo exporta los registros filtrados</li>
+        <li><strong>Sin paginación</strong> — Exporta TODOS los registros, no solo la página actual</li>
+        <li><strong>Excel-friendly</strong> — BOM UTF-8, separador punto y coma, nombre con fecha</li>
+      </ul>
+
+      <h4>Validaciones Inline</h4>
+      <p>Sistema de validación visual en formularios con errores debajo de cada campo y bordes de color.</p>
+      <ul>
+        <li><strong>Validación al enviar</strong> — Marca todos los errores y hace focus en el primero</li>
+        <li><strong>Validación en tiempo real</strong> — Al salir de un campo (blur) valida inmediatamente</li>
+        <li><strong>Auto-limpieza</strong> — Al empezar a corregir un campo, el error desaparece</li>
+        <li><strong>Tipos:</strong> required, minLength, maxLength, email, phone, number, url, custom</li>
+      </ul>
+
+      <p><strong>Archivos creados:</strong></p>
+      <ul>
+        <li><code>js/utils/notifications.js</code> — Sistema de notificaciones (~250 líneas)</li>
+        <li><code>js/utils/csv.js</code> — Utilidad de exportación CSV (~80 líneas)</li>
+        <li><code>js/utils/validate.js</code> — Validaciones inline (~190 líneas)</li>
+      </ul>
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/components/navbar.js</code> — Campana + panel de notificaciones</li>
+        <li><code>js/pages/clientes.js</code> — Botón CSV + validaciones inline</li>
+        <li><code>js/pages/productos.js</code> — Botón CSV + validaciones inline</li>
+        <li><code>js/pages/pedidos.js</code> — Botón CSV</li>
+        <li><code>css/components/navbar.css</code> — Estilos del panel de notificaciones</li>
+        <li><code>css/styles.css</code> — Estilos de validación y botón export</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 6 — Configuración, Permisos, Listas de Precios</h3>
+
+      <h4>Módulo de Configuración completo</h4>
+      <p>Página con 3 tabs: Organización, Usuarios, Listas de Precios. Ver sección <a href="#mod-configuracion">Módulo Configuración</a>.</p>
+
+      <h4>Sistema de Permisos por Rol</h4>
+      <p>Módulo centralizado de permisos con matriz módulo×acción×rol. Ver sección <a href="#permisos">Sistema de Permisos</a>.</p>
+      <ul>
+        <li>Sidebar dinámico filtrado por rol</li>
+        <li>Botones "Nuevo", "Editar", "Eliminar" condicionados por permisos</li>
+        <li>Acceso a configuración restringido a owner/admin</li>
+      </ul>
+
+      <p><strong>Archivos creados:</strong></p>
+      <ul>
+        <li><code>js/utils/permissions.js</code> — Sistema de permisos (~100 líneas)</li>
+        <li><code>js/pages/configuracion.js</code> — Módulo de configuración (~500 líneas)</li>
+        <li><code>css/components/configuracion.css</code> — Estilos de configuración</li>
+      </ul>
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/app.js</code> — Import de ConfiguracionPage y Permissions</li>
+        <li><code>js/components/sidebar.js</code> — Sidebar dinámico por permisos</li>
+        <li><code>js/pages/clientes.js</code>, <code>productos.js</code>, <code>pedidos.js</code> — Permisos en botones</li>
+        <li><code>index.html</code> — Link a configuracion.css</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 5 — Fase 6: Logística y Rutas</h3>
+
+      <h4>Módulo de Logística completo con Leaflet</h4>
+      <p>Se creó el módulo de gestión de rutas de reparto con mapa interactivo.</p>
+      <ul>
+        <li><strong>CRUD de rutas</strong> — crear, editar, eliminar rutas con repartidor, vehículo, fecha, hora de salida y km estimados</li>
+        <li><strong>Asignación de pedidos</strong> — los pedidos pendientes/en preparación sin ruta se pueden agregar como paradas</li>
+        <li><strong>Seguimiento de entregas</strong> — marcar cada parada como entregada (actualiza pedido a "entregado" automáticamente)</li>
+        <li><strong>Mapa Leaflet</strong> — mapa interactivo con marcadores numerados de colores por ruta, OpenStreetMap gratuito</li>
+        <li><strong>Barra de progreso</strong> — cada tarjeta muestra entregas completadas vs totales</li>
+        <li><strong>Layout split</strong> — panel de lista a la izquierda + mapa a la derecha, responsive</li>
+      </ul>
+      <p><strong>Archivos creados:</strong></p>
+      <ul>
+        <li><code>js/pages/logistica.js</code> — Módulo completo (~530 líneas)</li>
+        <li><code>css/components/logistica.css</code> — Estilos de tarjetas, mapa, paradas, responsive</li>
+      </ul>
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/app.js</code> — Import de LogisticaPage + registro de ruta</li>
+        <li><code>index.html</code> — Link al CSS de logística</li>
+        <li><code>docs.html</code> — Documentación + changelog + roadmap</li>
+      </ul>
+      <p><strong>SQL en Supabase:</strong> No se requiere ejecutar nada nuevo. La tabla <code>rutas</code> y sus políticas RLS ya fueron creadas en la Fase 1.</p>
+
+      <hr>
+
+      <h3>Sesión 4 — Fase 5: Dashboard y Reportes</h3>
+
+      <h4>Dashboard completo con Chart.js</h4>
+      <p>Se reescribió completamente <code>js/pages/dashboard.js</code> y <code>css/components/dashboard.css</code>. El dashboard ahora incluye:</p>
+      <ul>
+        <li><strong>4 KPIs principales</strong> — Ventas del período (con ticket promedio), pedidos (con desglose entregados/pendientes), clientes activos, morosidad total</li>
+        <li><strong>4 gráficos interactivos</strong> — Ventas por período (línea), pedidos por estado (dona), ventas por vendedor (barras horizontales), conversión pipeline (barras verticales)</li>
+        <li><strong>2 tablas de ranking</strong> — Top 10 clientes y Top 10 productos por facturación</li>
+        <li><strong>Panel de alertas</strong> — Stock bajo, productos por vencer, clientes morosos, pedidos estancados</li>
+        <li><strong>Selector de período</strong> — 7 días / 30 días / 90 días / último año, todos los datos se recargan al cambiar</li>
+      </ul>
+      <p><strong>Chart.js</strong> se carga de manera lazy (bajo demanda) al entrar al dashboard, con doble CDN de respaldo (jsdelivr + cdnjs).</p>
+
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/pages/dashboard.js</code> — Reescrito completo (~740 líneas)</li>
+        <li><code>css/components/dashboard.css</code> — Reescrito con estilos para gráficos, rankings, alertas y responsive</li>
+        <li><code>docs.html</code> — Documentación actualizada + changelog</li>
+      </ul>
+      <p><strong>SQL en Supabase:</strong> No se requiere ejecutar nada nuevo. Todos los queries usan tablas existentes.</p>
+
+      <hr>
+
+      <h3>Sesión 3 — Fase 4 + Bugfixes + Optimizaciones</h3>
+
+      <h4>Bug Fix: Error RLS al crear clientes y productos</h4>
+      <p><strong>Problema:</strong> Al intentar crear un cliente o producto aparecía el error <code>"new row violates row-level security policy"</code>.</p>
+      <p><strong>Causa raíz:</strong> Los inserts en <code>clientes</code>, <code>productos</code>, <code>pedidos</code> y <code>productos_pedido</code> no incluían el campo <code>organizacion_id</code>.
+        La política RLS de INSERT verifica que <code>organizacion_id = get_user_org_id()</code>, pero al no enviarse el campo era <code>NULL</code> y la validación fallaba.</p>
+      <p><strong>Solución:</strong> Se agregó <code>organizacion_id: window.App.userProfile.organizacion_id</code> en todos los inserts de:</p>
+      <ul>
+        <li><code>js/pages/clientes.js</code> — saveCliente()</li>
+        <li><code>js/pages/productos.js</code> — saveProducto() y savePreciosLista()</li>
+        <li><code>js/pages/pedidos.js</code> — savePedido() (tanto pedido como productos_pedido)</li>
+        <li><code>js/pages/pipeline.js</code> — saveOportunidad() (ya se creó con el fix)</li>
+      </ul>
+      <p><strong>Nota:</strong> En los UPDATE se excluye <code>organizacion_id</code> con destructuring (<code>const { organizacion_id, ...updateData } = data</code>) porque no debe cambiar después de creado.</p>
+
+      <h4>Bug Fix: Dashboard — variable <code>moneda</code> fuera de scope</h4>
+      <p><strong>Problema:</strong> En <code>dashboard.js</code>, la variable <code>moneda</code> se declaraba en <code>render()</code> pero se usaba en <code>loadStats()</code>, causando un error de referencia.</p>
+      <p><strong>Solución:</strong> Se movió la declaración de <code>moneda</code> dentro de <code>loadStats()</code>. Además, ahora el dashboard calcula la morosidad real sumando <code>saldo_pendiente</code> de todos los clientes con saldo &gt; 0.</p>
+
+      <h4>Optimización: Carga lazy de jsPDF</h4>
+      <p><strong>Antes:</strong> La librería jsPDF (~200KB) se cargaba en el <code>&lt;head&gt;</code> de <code>index.html</code> en cada página, incluso si el usuario nunca generaba un PDF.</p>
+      <p><strong>Después:</strong> Se removió del <code>&lt;head&gt;</code>. Ahora se carga dinámicamente solo cuando el usuario hace click en "Descargar PDF" en el detalle de un pedido. Se agregó el método <code>_loadJsPDF()</code> en <code>pedidos.js</code> que crea el tag <code>&lt;script&gt;</code> bajo demanda.</p>
+
+      <h4>Optimización: Preconnect a CDN</h4>
+      <p>Se agregó <code>&lt;link rel="preconnect" href="https://cdn.jsdelivr.net"&gt;</code> en <code>index.html</code> para que el navegador establezca la conexión al CDN de Supabase antes de necesitar el SDK.</p>
+
+      <h4>Fase 4: Pipeline Kanban</h4>
+      <p>Se implementó el módulo completo de Pipeline de ventas con tablero Kanban. Ver documentación en la sección <a href="#mod-pipeline">Módulo Pipeline Kanban</a>.</p>
+      <p><strong>Archivos creados:</strong></p>
+      <ul>
+        <li><code>js/pages/pipeline.js</code> — Módulo completo con drag &amp; drop nativo</li>
+        <li><code>css/components/pipeline.css</code> — Estilos del tablero Kanban</li>
+      </ul>
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/app.js</code> — Import de PipelinePage + registro de ruta</li>
+        <li><code>index.html</code> — Link al CSS del pipeline + optimización jsPDF</li>
+        <li><code>docs.html</code> — Documentación del módulo + roadmap actualizado</li>
+      </ul>
+      <p><strong>SQL en Supabase:</strong> No se requiere ejecutar nada nuevo. La tabla <code>pipeline_oportunidades</code> y sus políticas RLS ya fueron creadas en la Fase 1.</p>
+
+      <hr>
+
+      <h3>Sesión 2 — Fases 2 y 3</h3>
+      <ul>
+        <li><strong>Fase 2 — Clientes:</strong> CRUD completo con ficha detallada, semáforo de crédito, scoring, acciones rápidas (WhatsApp, llamar, email, mapa)</li>
+        <li><strong>Fase 3 — Productos:</strong> CRUD con catálogo, stock, categorías dinámicas, listas de precios por producto, toggle activo/inactivo</li>
+        <li><strong>Fase 3 — Pedidos:</strong> CRUD con selector de productos, líneas editables, cambio de estados, generación de PDF</li>
+      </ul>
+
+      <h3>Sesión 1 — Fase 1</h3>
+      <ul>
+        <li>Estructura base del proyecto (HTML, CSS, JS vanilla)</li>
+        <li>12 tablas SQL con arquitectura multi-tenant</li>
+        <li>Políticas RLS con doble filtro (org + rol)</li>
+        <li>Trigger de auto-creación de organización y usuario</li>
+        <li>Auth, login, sidebar con branding, navbar, dashboard con stats</li>
+        <li>Sistema de routing SPA hash-based</li>
+      </ul>
+
+      <hr>
+
+      <!-- ==================== ROADMAP ==================== -->
+      <h2 id="roadmap">Roadmap de Desarrollo</h2>
+
+      <table>
+        <thead><tr><th>Fase</th><th>Módulo</th><th>Contenido</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>1</strong></td>
+            <td>Base</td>
+            <td>Auth, roles, layout, sidebar, navbar, dashboard</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td><strong>2</strong></td>
+            <td>Clientes</td>
+            <td>CRUD, ficha completa, semáforo de crédito, scoring, acciones rápidas</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td><strong>3</strong></td>
+            <td>Productos y Pedidos</td>
+            <td>Catálogo, stock, listas de precios, crear pedidos, estados, PDF</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td><strong>4</strong></td>
+            <td>Pipeline Kanban</td>
+            <td>Tablero drag&drop, etapas, alertas, pronóstico ponderado</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td><strong>5</strong></td>
+            <td>Dashboard y Reportes</td>
+            <td>KPIs, gráficos Chart.js (ventas, estados, vendedores, pipeline), top 10 clientes/productos, alertas</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td><strong>6</strong></td>
+            <td>Logística</td>
+            <td>CRUD rutas, mapa Leaflet, asignar pedidos, marcar entregas, progreso</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Configuración</td>
+            <td>Org, usuarios, listas de precios, permisos por rol, sidebar dinámico</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Mejoras media</td>
+            <td>Notificaciones in-app, exportación CSV, validaciones inline</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Mejoras baja</td>
+            <td>Sort tablas, búsqueda global, PDF reportes, filtros avanzados, error handling, onboarding, empty/loading states</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Gaps críticos</td>
+            <td>Registro de cobros, timeline de interacciones manual, import CSV masivo</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Gaps importantes</td>
+            <td>Devoluciones, duplicar pedido, ajuste stock manual, notas en cliente, WhatsApp desde pedido, perfil de usuario, productos frecuentes, cobro vinculado a pedido</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Nice-to-have</td>
+            <td>Impresión hoja de ruta, metas de vendedor, export datos ZIP, descuento en pedido, olvidé contraseña, sistema de invitaciones, actualización masiva de precios, remito de entrega, cierre de caja, historial de precios, persistencia de filtros</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Bugs &amp; correcciones</td>
+            <td>Lista precios en pedidos, saldo_pendiente al crear pedido, fecha_ultima_compra al entregar, listado global devoluciones, filtro período Productos, Total Facturado sin cancelados, semáforo crédito, exportarDatos()</td>
+            <td><span class="doc-badge green">Completado</span></td>
+          </tr>
+          <tr>
+            <td><strong>7</strong></td>
+            <td>Comunicación</td>
+            <td>WhatsApp, telefonía, email tracking, timeline con integración</td>
+            <td><span class="doc-badge yellow">Pendiente</span></td>
+          </tr>
+          <tr>
+            <td><strong>8</strong></td>
+            <td>Automatización</td>
+            <td>Workflows, alertas inteligentes, IA, venta cruzada</td>
+            <td><span class="doc-badge yellow">Pendiente</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ==================== COSTOS ==================== -->
+      <h2 id="costos">Costos Estimados</h2>
+
+      <h3>Infraestructura base</h3>
+      <table>
+        <thead><tr><th>Servicio</th><th>Costo mensual</th><th>Notas</th></tr></thead>
+        <tbody>
+          <tr><td>Supabase (Free tier)</td><td>$0</td><td>500MB DB, 1GB storage, 50k auth users</td></tr>
+          <tr><td>Supabase (Pro)</td><td>$25</td><td>8GB DB, 100GB storage, sin límite de auth</td></tr>
+          <tr><td>Hosting (Netlify/Vercel)</td><td>$0</td><td>Free tier suficiente</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Integraciones (cuando se implementen)</h3>
+      <table>
+        <thead><tr><th>Servicio</th><th>Costo mensual</th><th>Notas</th></tr></thead>
+        <tbody>
+          <tr><td>Twilio WhatsApp</td><td>$50-200</td><td>~$0.005/mensaje</td></tr>
+          <tr><td>Twilio Voice</td><td>$30-100</td><td>~$0.013/minuto</td></tr>
+          <tr><td>Google Maps</td><td>$0</td><td>$200 crédito gratis/mes</td></tr>
+          <tr><td>SendGrid</td><td>$0</td><td>100 emails/día gratis</td></tr>
+        </tbody>
+      </table>
+
+      <div class="info-box tip">
+        <strong>Total estimado: $0-25/mes para arrancar</strong>
+        Con el free tier de Supabase + hosting gratuito, podés desarrollar y probar sin gastar nada.
+        Cuando pases a producción, el costo base es ~$25/mes + integraciones según uso.
+      </div>
+
+      <br><br>
+      <hr style="border: none; border-top: 1px solid var(--gray-200);">
+      <p class="text-muted" style="margin-top: 1rem; font-size: 0.8rem; text-align: center;">
+        CRM Distribuidora de Alimentos - Documentación v4.0
+      </p>
+
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,290 @@
+/* ========================================
+   REPORTES - Análisis en profundidad
+   ======================================== */
+
+.reportes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.reportes-header h1 {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.reportes-header p {
+  color: var(--gray-500);
+  font-size: var(--font-size-sm);
+  margin-top: 0.25rem;
+}
+
+.reportes-controls {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+/* ========================================
+   TABS
+   ======================================== */
+
+.reportes-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--gray-200);
+  margin-bottom: var(--spacing-lg);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rep-tab {
+  padding: 0.65rem 1.25rem;
+  background: none;
+  color: var(--gray-500);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.rep-tab:hover {
+  color: var(--gray-700);
+  background: var(--gray-50);
+}
+
+.rep-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+/* ========================================
+   CONTENIDO
+   ======================================== */
+
+.reportes-content {
+  min-height: 400px;
+}
+
+/* KPIs horizontales */
+.rep-kpis {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.rep-kpi {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  flex: 1;
+  min-width: 140px;
+}
+
+.rep-kpi-label {
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.25rem;
+}
+
+.rep-kpi-value {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.rep-kpi-value.green {
+  color: var(--success);
+}
+
+.rep-kpi-value.red {
+  color: var(--danger);
+}
+
+/* ========================================
+   CHARTS
+   ======================================== */
+
+.rep-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.rep-charts-row.single {
+  grid-template-columns: 1fr;
+}
+
+.rep-chart-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.rep-chart-card.wide {
+  grid-column: span 1;
+}
+
+.rep-chart-card.full {
+  grid-column: 1 / -1;
+}
+
+.rep-chart-card h3 {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--gray-800);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.rep-chart-body {
+  padding: var(--spacing-lg);
+  min-height: 280px;
+  position: relative;
+}
+
+.rep-chart-body canvas {
+  max-height: 300px;
+}
+
+/* ========================================
+   SECCIONES Y TABLAS
+   ======================================== */
+
+.rep-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.rep-section h3 {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-md);
+}
+
+.rep-table-wrapper {
+  overflow-x: auto;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+}
+
+.rep-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.rep-table thead {
+  background: var(--gray-50);
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.rep-table th {
+  padding: 0.65rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-600);
+  white-space: nowrap;
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rep-table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--gray-100);
+  vertical-align: middle;
+}
+
+.rep-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rep-table tbody tr:hover {
+  background: var(--gray-50);
+}
+
+/* Empty state */
+.rep-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--gray-400);
+  font-size: var(--font-size-sm);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .reportes-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reportes-tabs {
+    gap: 0;
+  }
+
+  .rep-tab {
+    padding: 0.5rem 0.75rem;
+    font-size: var(--font-size-xs);
+  }
+
+  .rep-kpis {
+    gap: var(--spacing-sm);
+  }
+
+  .rep-kpi {
+    min-width: calc(50% - var(--spacing-sm));
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .rep-kpi-value {
+    font-size: var(--font-size-lg);
+  }
+
+  .rep-charts-row {
+    grid-template-columns: 1fr;
+  }
+
+  .rep-chart-card.wide {
+    grid-column: span 1;
+  }
+
+  .rep-chart-body {
+    min-height: 220px;
+    padding: var(--spacing-md);
+  }
+
+  .rep-table th,
+  .rep-table td {
+    padding: 0.5rem 0.65rem;
+    font-size: var(--font-size-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .rep-kpi {
+    min-width: 100%;
+  }
+}

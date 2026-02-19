@@ -1,0 +1,422 @@
+/* ========================================
+   ESTILOS - MÓDULO CONFIGURACIÓN
+   ======================================== */
+
+/* Header */
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.config-header h1 {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+}
+
+.config-header p {
+  color: var(--gray-500);
+  font-size: var(--font-size-sm);
+}
+
+/* Tabs */
+.config-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--gray-200);
+  margin-bottom: var(--spacing-xl);
+  overflow-x: auto;
+}
+
+.config-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  background: none;
+  color: var(--gray-500);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.config-tab:hover {
+  color: var(--gray-700);
+  background: var(--gray-50);
+}
+
+.config-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.config-tab svg {
+  flex-shrink: 0;
+}
+
+/* Sections */
+.config-section {
+  background: white;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gray-200);
+  padding: 1.5rem;
+}
+
+.config-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.config-section-header h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.config-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gray-200);
+  margin-top: 1rem;
+}
+
+/* Color picker */
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-color {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  cursor: pointer;
+  background: none;
+}
+
+/* Info box */
+.config-info-box {
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  font-size: var(--font-size-sm);
+  color: var(--gray-700);
+  line-height: 1.5;
+}
+
+/* Empty state */
+.config-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--gray-400);
+}
+
+.config-empty svg {
+  margin-bottom: 1rem;
+}
+
+.config-empty h3 {
+  color: var(--gray-600);
+  margin-bottom: 0.5rem;
+}
+
+.config-empty p {
+  font-size: var(--font-size-sm);
+}
+
+/* ========================================
+   USUARIOS
+   ======================================== */
+
+.usuarios-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.usuario-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.usuario-card:hover {
+  background: var(--gray-50);
+}
+
+.usuario-card.inactivo {
+  opacity: 0.6;
+}
+
+.usuario-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+}
+
+.usuario-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.usuario-nombre {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.usuario-email {
+  font-size: var(--font-size-sm);
+  color: var(--gray-500);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge-you {
+  font-size: 0.65rem;
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+}
+
+.badge-rol {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+}
+
+.badge-rol.owner { background: #fef3c7; color: #92400e; }
+.badge-rol.admin { background: #dbeafe; color: #1e40af; }
+.badge-rol.gerente { background: #dcfce7; color: #166534; }
+.badge-rol.vendedor { background: #f3e8ff; color: #6b21a8; }
+.badge-rol.repartidor { background: #ffedd5; color: #9a3412; }
+.badge-rol.administrativo { background: #e0e7ff; color: #3730a3; }
+
+.badge-estado-user {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+}
+
+.badge-estado-user.activo { background: var(--success-light); color: var(--success); }
+.badge-estado-user.inactivo { background: var(--gray-100); color: var(--gray-500); }
+
+.usuario-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  background: white;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-icon:hover {
+  background: var(--gray-50);
+  color: var(--gray-700);
+  border-color: var(--gray-300);
+}
+
+/* ========================================
+   LISTAS DE PRECIOS
+   ======================================== */
+
+.listas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.lista-card {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  transition: all var(--transition-fast);
+}
+
+.lista-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.lista-card.inactiva {
+  opacity: 0.6;
+}
+
+.lista-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.lista-card-header h4 {
+  font-weight: 600;
+}
+
+.lista-desc {
+  font-size: var(--font-size-sm);
+  color: var(--gray-500);
+  margin-bottom: 0.75rem;
+}
+
+.lista-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: var(--font-size-xs);
+  color: var(--gray-400);
+  margin-bottom: 1rem;
+}
+
+.lista-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-danger-outline {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn-danger-outline:hover {
+  background: var(--danger-light);
+}
+
+/* Tabla de precios en modal */
+.precios-tabla-wrapper {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.precios-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.precios-tabla th {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 2px solid var(--gray-200);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  background: white;
+}
+
+.precios-tabla td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.precios-tabla code {
+  font-size: var(--font-size-xs);
+  background: var(--gray-100);
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-sm);
+}
+
+.text-success { color: var(--success); }
+.text-danger { color: var(--danger); }
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .config-tabs {
+    gap: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .config-tab {
+    padding: 0.6rem 0.75rem;
+    font-size: var(--font-size-xs);
+  }
+
+  .config-section {
+    padding: 1rem;
+  }
+
+  .usuario-card {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .usuario-info {
+    flex: 1 1 calc(100% - 60px);
+  }
+
+  .usuario-rol,
+  .usuario-estado {
+    margin-left: 52px;
+  }
+
+  .usuario-actions {
+    margin-left: auto;
+  }
+
+  .listas-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .config-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .color-picker-row {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .config-header h1 {
+    font-size: var(--font-size-xl);
+  }
+}

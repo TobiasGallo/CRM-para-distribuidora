@@ -982,3 +982,522 @@ EXTRAS:
 **VEREDICTO FINAL: Proyecto 100% realizable con las tecnologías propuestas.**
 
 El único componente que NO podrías hacer con solo HTML/CSS/JS vanilla es el backend, pero Supabase lo resuelve perfectamente sin necesidad de crear un servidor tradicional.
+
+
+Stack Tecnológico Recomendado
+Dado que querés usar HTML, CSS y JavaScript (sin frameworks) + Supabase, te recomiendo:
+
+Capa	Tecnología	Por qué
+Base de datos	Supabase (PostgreSQL)	Auth, RLS, Realtime, Storage, API REST automática - todo incluido
+Frontend	HTML + CSS + JavaScript vanilla	Sin complejidad de frameworks, control total
+Estilos	CSS puro + variables CSS	Temas, responsividad, sin dependencias
+Drag & Drop	SortableJS	Librería liviana, sin dependencias, perfecta para el Kanban
+Gráficos	Chart.js	Simple, buena documentación, funciona con JS vanilla
+PDFs	jsPDF	Genera PDFs desde el navegador
+Mapas	Leaflet (gratis) o Google Maps	Para rutas y GPS de repartidores
+Hosting	Netlify o Vercel	Gratis para sitios estáticos
+Para las integraciones externas (más adelante):
+
+WhatsApp/Telefonía: Twilio (vía Supabase Edge Functions)
+Email tracking: SendGrid
+Notificaciones Push: Firebase Cloud Messaging
+Paso a paso para desarrollar
+
+FASE 1 - Base y Autenticación
+Crear proyecto en Supabase
+Diseñar la estructura de carpetas del proyecto
+Configurar las tablas en Supabase (Usuarios, Clientes, Productos)
+Configurar autenticación (login/registro) con Supabase Auth
+Implementar sistema de roles (Admin, Gerente, Vendedor, Repartidor, Administrativo)
+Crear layout principal (sidebar, navbar, contenido)
+Implementar Row Level Security (RLS) para cada rol
+
+FASE 2 - CRUD de Clientes
+Listado de clientes con búsqueda y filtros
+Ficha completa del cliente (datos, logística, financiero)
+Sistema de semáforo de crédito (verde/amarillo/rojo)
+Scoring automático de clientes (1-5 estrellas)
+Botones de acción rápida (WhatsApp, llamar, email, Maps)
+
+FASE 3 - Productos y Pedidos
+CRUD de productos con catálogo
+Control de stock (alertas de mínimo y vencimiento)
+Listas de precios (Tarifa A/B/C)
+Creación de pedidos (seleccionar cliente, agregar productos, calcular total)
+Estados del pedido (Pendiente → En Preparación → En Ruta → Entregado)
+Generación de PDF del pedido con jsPDF
+
+FASE 4 - Pipeline Kanban
+Tablero Kanban con drag & drop (SortableJS)
+Etapas del embudo (Contacto → Calificación → Presupuesto → Negociación → Cierre → Activo)
+Campos obligatorios por etapa
+Alertas de tarjetas estancadas
+Cálculo de probabilidad y pronóstico de ventas
+
+FASE 5 - Dashboard y Reportes
+Dashboard gerencial con métricas en tiempo real (Chart.js)
+Reportes: ventas por vendedor, morosidad, productos más vendidos
+Top 10 clientes y productos
+Tasa de conversión del pipeline
+
+FASE 6 - Logística y Rutas
+CRUD de rutas con asignación de repartidores
+Mapa interactivo con Leaflet
+Tracking GPS del repartidor
+Vista móvil (PWA) para repartidores: lista de entregas, marcar entregado, foto, firma
+
+FASE 7 - Comunicación e Integraciones
+Timeline de interacciones por cliente
+Integración WhatsApp (Twilio vía Edge Functions)
+Click-to-Call (telefonía)
+Email tracking con SendGrid
+Notificaciones push
+
+FASE 8 - Automatización e IA
+Workflows automáticos (seguimientos, asignación por zona)
+Alertas inteligentes (cliente sin comprar, deuda por vencer, stock bajo)
+Sugerencias de venta cruzada
+Optimización de rutas
+
+
+Prioridad	Item
+~~Alta	Configuración (#1), Listas de precios (#2), Permisos por rol (#11)~~ ✅ COMPLETADO
+~~Media	Notificaciones (#4), Exportación CSV (#5), Validaciones (#7)~~ ✅ COMPLETADO
+~~Baja	Búsqueda global (#3), Filtros avanzados (#6), Empty states (#9), Onboarding (#13), Sort tablas, PDF reportes, Error handler, Loading states~~ ✅ COMPLETADO
+
+---
+
+## 🏗️ ESTADO DE IMPLEMENTACIÓN
+
+### Stack tecnológico real utilizado
+| Capa | Tecnología | Notas |
+|------|-----------|-------|
+| Frontend | HTML + CSS + JavaScript vanilla (ES Modules) | Sin frameworks, SPA con hash router |
+| Base de datos | Supabase (PostgreSQL) | Auth, RLS, Realtime, API REST |
+| Estilos | CSS puro + CSS Variables | Branding dinámico por organización |
+| Gráficos | Chart.js 4.x (carga lazy desde CDN) | Dual CDN fallback (jsdelivr + cdnjs) |
+| PDFs | jsPDF 2.5.2 (carga lazy desde CDN) | Generación cliente-side |
+| Mapas | Leaflet (carga lazy desde CDN) | Rutas y GPS |
+| Drag & Drop | SortableJS (carga lazy desde CDN) | Pipeline Kanban |
+| Hosting | GitHub Pages / cualquier hosting estático | Repo: https://github.com/TobiasGallo/CRM-para-distribuidora.git |
+
+### Arquitectura
+- **Multi-tenant**: Todas las tablas tienen `organizacion_id` + RLS
+- **SPA**: Navegación por hash (`#/dashboard`, `#/clientes`, etc.)
+- **ES Modules**: `import`/`export` entre archivos JS
+- **Lazy loading**: Librerías CDN se cargan bajo demanda
+- **Branding dinámico**: CSS Variables sobrescritas por colores de la organización
+
+---
+
+## 📁 ESTRUCTURA DE ARCHIVOS
+
+```
+CRM-Alex/
+├── index.html                          # Entry point - carga CSS y app.js
+├── css/
+│   ├── variables.css                   # CSS Variables globales (colores, spacing, tipografía)
+│   ├── styles.css                      # Estilos base, layout, utilidades, responsive
+│   └── components/
+│       ├── login.css                   # Pantalla de login
+│       ├── sidebar.css                 # Sidebar + backdrop mobile + drawer
+│       ├── navbar.css                  # Navbar superior
+│       ├── dashboard.css               # Dashboard con stat cards y gráficos
+│       ├── clientes.css                # Listado, filtros, tabla, ficha, modal
+│       ├── productos.css               # Listado, filtros, tabla, modal
+│       ├── pedidos.css                 # Listado, filtros, tabla, detalle, PDF
+│       ├── pipeline.css                # Kanban board con drag & drop
+│       ├── logistica.css               # Rutas, mapa, paradas
+│       ├── reportes.css                # 6 tabs de reportes con gráficos
+│       └── configuracion.css           # Tabs org/usuarios/listas, modales
+├── js/
+│   ├── app.js                          # Entry point JS - init, routing, branding
+│   ├── config/
+│   │   └── supabase.js                 # Cliente Supabase (URL + anon key)
+│   ├── auth/
+│   │   └── auth.js                     # Login, logout, sesión, perfil, organización (cache)
+│   ├── utils/
+│   │   ├── router.js                   # SPA Router (hash-based, register/navigate/handleRoute)
+│   │   ├── toast.js                    # Notificaciones toast (success/error/warning)
+│   │   ├── permissions.js              # Sistema de permisos por rol (matriz módulo×acción)
+│   │   ├── notifications.js            # Campana + panel desplegable notificaciones
+│   │   ├── csv.js                      # Exportación CSV de listados
+│   │   ├── validate.js                 # Validaciones visuales inline en formularios
+│   │   ├── error-handler.js            # Manejo centralizado: offline, sesión, network, rate limit
+│   │   ├── global-search.js            # Búsqueda global Ctrl+K (clientes + productos + pedidos)
+│   │   └── onboarding.js               # Wizard de bienvenida para organizaciones nuevas
+│   ├── components/
+│   │   ├── sidebar.js                  # Sidebar con nav dinámico por permisos, mobile drawer
+│   │   └── navbar.js                   # Navbar + campana notificaciones + panel
+│   └── pages/
+│       ├── login.js                    # Formulario de login
+│       ├── dashboard.js                # KPIs, gráficos Chart.js, rankings, alertas
+│       ├── clientes.js                 # CRUD completo + ficha detallada + semáforo crédito
+│       ├── productos.js                # CRUD completo + precios por lista + stock
+│       ├── pedidos.js                  # CRUD + cambio de estados + edición líneas + PDF
+│       ├── pipeline.js                 # Kanban drag&drop con SortableJS
+│       ├── logistica.js                # Rutas + mapa Leaflet + paradas + repartidores
+│       ├── reportes.js                 # 6 tabs: Ventas, Vendedores, Productos, Morosidad, Inactivos, Entregas
+│       └── configuracion.js            # 3 tabs: Organización, Usuarios, Listas de Precios
+└── supabase/
+    ├── 01_tablas.sql                   # CREATE TABLE de todas las tablas + índices + triggers
+    ├── 02_rls_policies.sql             # Row Level Security policies por tabla
+    ├── 03_trigger_nuevo_usuario.sql    # Trigger para crear perfil en tabla usuarios al registrarse
+    ├── 04_cobros.sql                   # Tabla cobros + RLS (pagos/cobros vinculados a clientes)
+    ├── 05_notas_cliente.sql            # Columna notas_internas en clientes
+    ├── 06_devoluciones.sql             # Tablas devoluciones + devoluciones_lineas + RLS
+    ├── 07_metas_vendedor.sql           # Tabla metas_vendedor (mes/año/monto) + RLS
+    ├── 08_cobros_pedido_id.sql         # ALTER TABLE cobros ADD COLUMN pedido_id (migración)
+    ├── 09_pedidos_descuento.sql        # ALTER TABLE pedidos ADD columnas descuento_tipo/valor/monto
+    ├── 10_invitaciones.sql             # Tabla invitaciones + RPCs get_invitacion_by_token / usar_invitacion
+    └── 11_historial_precios.sql        # Tabla historial_precios + índices + RLS (cambios de precio)
+```
+
+---
+
+## ✅ FASES COMPLETADAS
+
+### FASE 1 - Base y Autenticación ✅
+- [x] Proyecto Supabase configurado
+- [x] Tablas creadas: organizaciones, usuarios, clientes, productos, pedidos, productos_pedido, rutas, interacciones, pipeline_oportunidades, notificaciones, listas_precios, precios_por_lista
+- [x] RLS policies para todas las tablas (doble filtro: org_id + rol)
+- [x] Trigger para crear usuario en tabla `usuarios` al registrarse en Supabase Auth
+- [x] Login con email/password
+- [x] Layout: sidebar colapsable + navbar + main content
+- [x] Roles: owner, admin, gerente, vendedor, repartidor, administrativo
+- [x] Branding dinámico por organización (colores, logo, favicon, nombre)
+
+### FASE 2 - CRUD de Clientes ✅
+- [x] Listado paginado con búsqueda y filtros (tipo, estado)
+- [x] Crear / editar cliente con formulario completo
+- [x] Ficha detallada del cliente (datos, logística, financiero, métricas)
+- [x] Semáforo de crédito (verde/amarillo/rojo): Verde = saldo ≤ 0 o crédito no vencido; Amarillo = vencido ≤ 7 días; Rojo = vencido > 7 días. Lógica basada en `fecha_ultima_compra + dias_credito` vs hoy (no en días de inactividad)
+- [x] Scoring con estrellas (0-5)
+- [x] Botones de acción rápida: WhatsApp, llamar, email, Google Maps
+- [x] Asignación de vendedor y lista de precios
+- [x] Eliminar con confirmación
+
+### FASE 3 - Productos y Pedidos ✅
+- [x] CRUD de productos con SKU, categoría, stock, vencimiento
+- [x] Precios por lista de precios (sección en modal de producto)
+- [x] Control visual de stock (badges: ok, bajo, sin stock)
+- [x] Alertas de vencimiento próximo
+- [x] CRUD de pedidos: seleccionar cliente, buscar/agregar productos, calcular total
+- [x] Estados del pedido: Pendiente → En Preparación → En Ruta → Entregado / Cancelado / Incidencia
+- [x] Edición completa del pedido (cambiar estado, vendedor, líneas, método pago)
+- [x] Al crear pedido: `clientes.saldo_pendiente` se incrementa automáticamente con el total
+- [x] Al entregar pedido (desde Pedidos o Logística): `clientes.fecha_ultima_compra` se actualiza automáticamente
+- [x] Lista de precios del cliente aplicada automáticamente al agregar productos (consulta `precios_por_lista` al seleccionar cliente, usa precio lista cuando existe)
+- [x] Remito de entrega (sin precios): botón en detalle del pedido, impresión directa vía `window.print()`
+- [x] Generación de PDF del pedido con jsPDF (carga lazy, dual CDN fallback)
+
+### FASE 4 - Pipeline Kanban ✅
+- [x] Tablero Kanban con 6 etapas
+- [x] Drag & drop entre columnas (SortableJS, carga lazy)
+- [x] Tarjetas con cliente, vendedor, valor estimado, probabilidad
+- [x] Crear / editar oportunidades
+- [x] Valor total por columna
+- [x] Días en etapa actual
+
+### FASE 5 - Dashboard y Reportes ✅
+- [x] Dashboard: KPIs (ventas, pedidos, clientes, ticket promedio)
+- [x] Gráficos Chart.js: evolución de ventas, top productos, distribución estados
+- [x] Rankings: top clientes, top productos
+- [x] Alertas: stock bajo, clientes inactivos, pedidos pendientes
+- [x] Selector de período (7/30/90 días)
+- [x] Página de Reportes separada con 6 tabs:
+  - Ventas: KPIs (Total Facturado **sin cancelados**, Entregado Efectivo, Ticket Promedio, Pedidos Activos, Tasa Cancelación), evolución diaria, métodos de pago, tabla detalle
+  - Vendedores: KPIs, chart comparativo + barra de meta, tabla con tasa de éxito. Gestión de metas mensuales con upsert (modal para gerentes+)
+  - Productos: KPIs, top 15 chart, donut categorías, tabla completa. **Filtro de período funciona correctamente** (dos-pasos: IDs de pedidos primero, luego `.in()` en líneas). Excluye pedidos cancelados.
+  - Morosidad: KPIs, chart deuda por color, tabla con teléfono
+  - Clientes Inactivos: KPIs por brackets (30/60/90 días), tabla
+  - Entregas: KPIs, tabla repartidores, historial rutas
+- [x] Exportar PDF de cualquier tab activo (jsPDF, lazy CDN)
+
+### FASE 6 - Logística y Rutas ✅
+- [x] CRUD de rutas con repartidor, vehículo, fecha
+- [x] Mapa interactivo con Leaflet (carga lazy, dual CDN)
+- [x] Agregar paradas (clientes con pedidos pendientes)
+- [x] Reordenar paradas con drag & drop
+- [x] Marcar paradas como completadas
+- [x] KM estimados y estado de ruta
+
+### Responsive y Mobile ✅
+- [x] Sidebar como off-canvas drawer en mobile (< 768px) con backdrop
+- [x] Hamburger toggle: mobile = drawer, desktop = collapse
+- [x] Auto-cierre del sidebar al navegar en mobile
+- [x] Todos los módulos con responsive a 768px y 480px
+- [x] Tablas con overflow-x auto
+- [x] Modales y formularios adaptados a mobile
+
+### Configuración ✅
+- [x] Página de Configuración con 3 tabs:
+
+**Tab Organización:**
+- [x] Editar datos de la empresa (nombre, razón social, CUIT, dirección)
+- [x] Editar contacto (teléfono, email, sitio web)
+- [x] Personalización visual: color pickers sincronizados con text input
+- [x] URLs de logo y favicon
+- [x] Preferencias: moneda (ARS/USD/EUR/CLP/MXN/COP/UYU), zona horaria
+- [x] Al guardar: actualiza branding en vivo (colores CSS, nombre sidebar, título navegador)
+
+**Tab Usuarios:**
+- [x] Lista de todos los usuarios con avatar, nombre, email, rol, estado
+- [x] Badge "Vos" en el usuario actual
+- [x] Editar nombre, rol y zona asignada de cualquier usuario (excepto owner y self)
+- [x] Activar/desactivar usuarios
+- [x] Sistema de invitaciones completo: modal con nombre/email/rol, genera token en tabla `invitaciones`, muestra link copiable `?invite={token}`. El invitado abre el link, completa su registro con email y nombre prellenados, queda vinculado a la organización automáticamente
+- [x] Info-box explicativo del flujo de invitación (corregido — antes decía "el usuario debe registrarse solo")
+
+**Tab Listas de Precios:**
+- [x] Crear nueva lista de precios (nombre, descripción, activa/inactiva)
+- [x] Editar lista existente
+- [x] Eliminar lista (limpia referencia en clientes)
+- [x] Cards con conteo de productos con precio y clientes asignados
+- [x] Modal "Ver precios" con tabla: producto, SKU, precio base, precio lista, diferencia %
+- [x] Info box: los precios por producto se configuran desde el modal de cada producto
+
+### Sistema de Permisos por Rol ✅
+
+**Archivo:** `js/utils/permissions.js`
+
+**Jerarquía de roles (nivel de acceso):**
+```
+owner (6) > admin (5) > gerente (4) > vendedor (3) > administrativo (2) > repartidor (1)
+```
+
+**Matriz de permisos (módulo × acción × roles permitidos):**
+
+| Módulo | Acción | owner | admin | gerente | vendedor | administrativo | repartidor |
+|--------|--------|:-----:|:-----:|:-------:|:--------:|:--------------:|:----------:|
+| dashboard | ver | ✅ | ✅ | ✅ | ✅ | ✅ | - |
+| pipeline | ver/crear/editar | ✅ | ✅ | ✅ | ✅ | - | - |
+| pipeline | eliminar | ✅ | ✅ | ✅ | - | - | - |
+| clientes | ver | ✅ | ✅ | ✅ | ✅ | ✅ | - |
+| clientes | crear/editar | ✅ | ✅ | ✅ | ✅ | - | - |
+| clientes | eliminar | ✅ | ✅ | ✅ | - | - | - |
+| productos | ver | ✅ | ✅ | ✅ | ✅ | ✅ | - |
+| productos | crear/editar | ✅ | ✅ | ✅ | - | - | - |
+| productos | eliminar | ✅ | ✅ | - | - | - | - |
+| pedidos | ver | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| pedidos | crear/editar | ✅ | ✅ | ✅ | ✅ | - | - |
+| pedidos | eliminar | ✅ | ✅ | ✅ | - | - | - |
+| pedidos | cambiar_estado | ✅ | ✅ | ✅ | ✅ | - | ✅ |
+| rutas | ver | ✅ | ✅ | ✅ | - | - | ✅ |
+| rutas | crear/eliminar | ✅ | ✅ | ✅ | - | - | - |
+| rutas | editar | ✅ | ✅ | ✅ | - | - | ✅ |
+| reportes | ver | ✅ | ✅ | ✅ | - | - | - |
+| reportes | ver_morosidad | ✅ | ✅ | ✅ | - | ✅ | - |
+| configuracion | ver/editar_org | ✅ | ✅ | - | - | - | - |
+| configuracion | gestionar_usuarios | ✅ | ✅ | - | - | - | - |
+| configuracion | listas_precios | ✅ | ✅ | ✅ | - | - | - |
+
+**Rutas del sidebar por rol:**
+
+| Rol | Rutas visibles |
+|-----|---------------|
+| owner | Dashboard, Pipeline, Clientes, Productos, Pedidos, Rutas, Reportes, Configuración |
+| admin | Dashboard, Pipeline, Clientes, Productos, Pedidos, Rutas, Reportes, Configuración |
+| gerente | Dashboard, Pipeline, Clientes, Productos, Pedidos, Rutas, Reportes |
+| vendedor | Dashboard, Pipeline, Clientes, Productos, Pedidos |
+| administrativo | Dashboard, Clientes, Productos, Pedidos |
+| repartidor | Dashboard, Pedidos, Rutas |
+
+**Implementación en el frontend:**
+- `Permissions.can(acción, módulo)` → verifica si el rol actual tiene permiso
+- `Permissions.getVisibleRoutes()` → devuelve las rutas del sidebar para el rol
+- `Permissions.isAdmin()` → shortcut para owner/admin
+- `Permissions.hasMinRole(rol)` → verifica nivel mínimo de rol
+- El sidebar se renderiza dinámicamente según permisos (método `buildNav()`)
+- Los botones "Nuevo", "Editar", "Eliminar" se ocultan condicionalmente con `Permissions.can()`
+- La página de Configuración bloquea acceso completo si no es admin/owner
+
+**API del módulo:**
+```javascript
+import Permissions from './utils/permissions.js';
+
+// Verificar permiso específico
+if (Permissions.can('crear', 'productos')) { /* mostrar botón */ }
+
+// Verificar nivel de rol
+if (Permissions.hasMinRole('gerente')) { /* acceso gerente+ */ }
+
+// Obtener rutas visibles
+const routes = Permissions.getVisibleRoutes(); // ['dashboard', 'clientes', ...]
+```
+
+### Notificaciones In-App ✅
+
+**Archivo:** `js/utils/notifications.js`
+
+- [x] Campana en el navbar con badge de conteo (se oculta si es 0, muestra "9+" si >9)
+- [x] Panel desplegable con lista de notificaciones (últimas 30)
+- [x] Íconos por tipo: pedido (azul), stock (amarillo), cliente (verde), alerta (rojo), sistema (violeta)
+- [x] Tiempo relativo ("Hace 5 min", "Hace 2h", "Hace 3 días")
+- [x] Click en notificación → marcar como leída + navegar si tiene link_accion
+- [x] Botón "Marcar leídas" → marca todas como leídas
+- [x] Polling automático cada 60 segundos
+- [x] Se cierra al hacer click fuera del panel
+- [x] Responsive: en mobile el panel ocupa todo el ancho
+- [x] Destroy al hacer logout (limpia interval y estado)
+
+### Exportación CSV ✅
+
+**Archivo:** `js/utils/csv.js`
+
+- [x] Botón "CSV" en Clientes, Productos y Pedidos
+- [x] Exporta TODOS los registros (sin paginación) respetando filtros activos
+- [x] BOM UTF-8 para compatibilidad con Excel (tildes y eñes)
+- [x] Separador punto y coma (;) para configuración regional español
+- [x] Nombre del archivo con fecha: `clientes_20260217.csv`
+- [x] Soporta dot notation para campos anidados (`vendedor.nombre`)
+- [x] Soporta funciones format para campos calculados
+
+**Columnas por módulo:**
+- Clientes: 15 columnas (nombre, razón social, tipo, estado, contacto, dirección, vendedor, lista precios, crédito, scoring, días reparto)
+- Productos: 10 columnas (SKU, nombre, categoría, formato, precio, stock, proveedor, vencimiento, estado)
+- Pedidos: 10 columnas (número, cliente, vendedor, estado, total, método pago, fechas, observaciones)
+
+### Validaciones Inline ✅
+
+**Archivo:** `js/utils/validate.js`
+
+- [x] Validación al enviar formulario con `Validate.form(form, rules)`
+- [x] Validación en tiempo real (on blur) con `Validate.bindRealtime(form, rules)`
+- [x] Borde rojo + mensaje de error debajo del campo inválido
+- [x] Borde verde en campos válidos
+- [x] Auto-limpieza del error al empezar a corregir (on input)
+- [x] Focus automático en el primer campo con error
+- [x] Scroll suave al campo con error
+
+**Tipos de validación:**
+- `required` — campo obligatorio
+- `minLength` / `maxLength` — longitud mínima/máxima
+- `type: 'email'` — formato de email
+- `type: 'phone'` — teléfono (min 8 dígitos)
+- `type: 'number'` — número con min/max
+- `type: 'url'` — URL válida
+- `custom` — función personalizada
+
+**Formularios con validación:**
+- Clientes: nombre (required, min 2), tipo (required), email (format), teléfono (format)
+- Productos: SKU (required, min 2), nombre (required, min 2), categoría (required), precio base (required, >= 0)
+
+---
+
+## 🔧 GAPS PENDIENTES (fuera de fases)
+
+### 🔴 Críticos para producción
+- [x] **Registro de cobros/pagos** — Tab "Cobros" en ficha de cliente. Historial de cobros con fecha, monto, método, usuario. Actualización automática del saldo. Tabla `cobros` (ver `supabase/04_cobros.sql`).
+- [x] **Timeline de interacciones manual** — Tab "Timeline" en ficha de cliente. Registro de llamadas, visitas, notas con tipo, contenido y resultado. Lazy-load al abrir el tab.
+- [x] **Import CSV** — Modal completo con 4 pasos: subir → preview → importar → resultado. Soporta clientes y productos. Auto-detección de separador coma/punto y coma. Batch de 50 filas. Ver `js/utils/import-csv.js`.
+
+### 🟡 Importantes pero no bloqueantes
+- [x] **Gestión de devoluciones (NCR)** — Botón "Devolver" en pedidos entregados. Selección de productos y cantidades devueltas. Nota de crédito automática (reduce `saldo_pendiente` del cliente). Tabla `devoluciones` + `devoluciones_lineas` (ver `supabase/06_devoluciones.sql`).
+- [x] **Duplicar pedido** — Botón "Duplicar" en detalle del pedido. Crea nuevo pedido con mismo cliente, productos y precios. Estado `pendiente`, número nuevo.
+- [x] **Ajuste manual de stock** — Botón en cada fila de productos. Modal con tipo: entrada/salida/absoluto, cantidad y motivo. Actualización inmediata del stock local y en Supabase.
+- [x] **Notas internas en ficha de cliente** — Tab "Notas" en ficha de cliente con textarea guardado en columna `notas_internas` (ver `supabase/05_notas_cliente.sql`). Visible para todos los roles.
+
+### 🟢 Nice-to-have
+- [x] **Impresión de hoja de ruta** — Botón "Imprimir" en detalle de ruta en Logística. Ventana HTML optimizada para print con encabezado, metadatos, tabla de paradas (nro, cliente, dirección, entregado, firma), resumen y auto-print al abrir.
+- [x] **Metas de vendedor** — Tabla `metas_vendedor` (ver `supabase/07_metas_vendedor.sql`). Tab Vendedores en Reportes: grid de progreso con barra de color, columna Meta, barra en gráfico. Gerentes+ editan metas por mes desde modal con upsert.
+- [x] **Export completo de datos** — Botón en Configuración > Organización (owner/admin). Descarga un ZIP con 5 CSVs: clientes, productos, pedidos (con líneas), cobros, usuarios. Usa JSZip cargado lazy desde CDN. Archivo: `crm_backup_YYYYMMDD.zip`.
+
+---
+
+## 🔧 GAPS ADICIONALES (detectados post-implementación)
+
+### 🔴 Funcional crítico
+
+- [x] **Historial de pedidos en ficha de cliente** — 5to tab "Pedidos" en ficha de cliente. Lista pedidos (número, fecha, estado badge, vendedor, total) con filtro por estado. Lazy-load al primer clic. Muestra hasta 50, badge con conteo.
+- [x] **Verificación de línea de crédito al crear pedido** — Al seleccionar cliente en nuevo pedido, se muestra inline saldo pendiente, línea de crédito y disponible. Se actualiza en tiempo real al agregar/modificar productos. Warning en rojo si el total supera la disponibilidad.
+- [x] **Alertas de stock bajo en Dashboard** — Widget dedicado (se oculta si no hay alertas) con badge de conteo. Dos grupos: "Sin stock" (rojo) y "Stock bajo" (amarillo). Cada producto muestra nombre, SKU, cantidad actual vs. mínimo. Link directo a la sección Productos.
+
+### 🟡 Importantes
+
+- [x] **Compartir pedido por WhatsApp** — Botón "WhatsApp" en footer del modal de detalle de pedido. Genera link `wa.me/?text=...` con mensaje formateado: org, número de pedido, cliente, fecha, fecha entrega, detalle de productos y total. Compatible con cualquier teléfono que tenga WhatsApp.
+- [x] **Perfil propio del usuario** — Tab "Mi Perfil" en Configuración (accesible para todos los roles). Permite cambiar nombre + teléfono (UPDATE en tabla `usuarios`) y cambiar contraseña (via `supabase.auth.updateUser`). Actualiza nombre en sidebar en tiempo real sin recargar.
+
+### 🟢 Nice-to-have
+
+- [x] **Productos frecuentes al crear pedido** — Al seleccionar un cliente en "Nuevo Pedido", se cargan los últimos 8 pedidos del cliente, se extraen hasta 5 productos únicos y se muestran como chips clickeables antes del buscador. Al hacer clic en un chip se agrega la línea al pedido. `supabase/08_cobros_pedido_id.sql` no requerido para este feature.
+- [x] **Cobro vinculado a pedido específico** — En el modal "Registrar Pago" se agrega campo select opcional con los pedidos activos del cliente (últimos 20, excluyendo cancelados). Se guarda `pedido_id` en tabla `cobros` (migración: `supabase/08_cobros_pedido_id.sql`). En la lista de cobros, se muestra badge con el número de pedido vinculado.
+
+---
+
+## 🔧 GAPS ADICIONALES II (detectados post-implementación)
+
+### 🔴 Críticos — pueden bloquear el uso real
+
+- [x] **Descuento en pedido** — Fila "Descuento" entre el listado de productos y el total. Select tipo (% / monto fijo) + input de valor. Se recalcula en tiempo real en `updateTotal()` y `updateDetalleTotal()`. Se guarda en nuevas columnas `descuento_tipo`, `descuento_valor`, `descuento_monto` (migración: `supabase/09_pedidos_descuento.sql`). Funciona en Nuevo Pedido y en edición de pedido existente.
+- [x] **"Olvidé mi contraseña" desde el login** — Link "¿Olvidaste tu contraseña?" en la pantalla de login. Muestra vista alternativa con campo de email. Llama a `supabase.auth.resetPasswordForEmail()` con `redirectTo` al origen de la app. Muestra mensaje de éxito. Botón "← Volver al login" para cancelar.
+- [x] **Invitación funcional de usuarios** — Modal "Invitar usuario" con formulario real: nombre, email, rol. Crea registro en tabla `invitaciones` con token UUID y expiración de 7 días. Muestra link copiable `{appURL}?invite={token}`. Al abrir el link, login.js detecta `?invite=`, llama RPC `get_invitacion_by_token()` (SECURITY DEFINER, sin auth), muestra formulario de registro con email/nombre prellenados y bloqueados. Al registrar, pasa `organizacion_id`, `rol`, `nombre` como metadata para el trigger. Marca invitación como usada via RPC `usar_invitacion()`. Migración: `supabase/10_invitaciones.sql`.
+
+### 🟡 Importantes para el día a día
+
+- [x] **Actualización masiva de precios** — Botón "Precios" en header de Productos. Modal con filtro por categoría (o todos), tipo de ajuste (% aumento / % descuento / valor fijo sumar / valor fijo restar) y preview de productos afectados. UPDATE masivo via upsert. Solo visible para admin/owner/gerente.
+- [x] **Remito de entrega** (sin precios) — Botón "Remito" en footer del modal detalle de pedido. Abre ventana nueva con HTML de impresión: logo, datos cliente, tabla de productos con cantidades (sin precios), 3 líneas de firma (receptor, DNI, repartidor). Llama `window.print()` automáticamente.
+- [x] **Resumen de cobros del día (cierre de caja)** — Widget "Cobros de hoy" en Dashboard (antes del panel de Alertas). Muestra total del día, cantidad de cobros (badge), desglose por método de pago ordenado por monto. No afecta filtro de período del dashboard.
+
+### 🟢 Menores
+
+- [x] **Historial de precios por producto** — Tabla `historial_precios` con precio anterior, nuevo, fecha y usuario. Al guardar un producto, si `precio_base` cambió se registra automáticamente. En el modal de edición aparece sección "Historial de precios" con los últimos 10 cambios (fecha, variación con color ▲▼, nombre del responsable). SQL: `supabase/11_historial_precios.sql`.
+- [x] **Persistencia de filtros entre navegación** — `sessionStorage` en Productos, Pedidos y Clientes. Al volver a cualquier página los filtros activos se restauran tanto en el objeto interno como en los inputs del DOM. Se guardan en cada llamada a `loadProductos/loadPedidos/loadClientes`.
+
+---
+
+## 🔧 GAPS ADICIONALES III (auditoría post-implementación — bugs reales)
+
+### 🔴 Críticos — datos incorrectos en operación diaria
+
+- [x] **Lista de precios del cliente no aplica en pedidos** — `agregarLinea()` siempre usa `prod.precio_base`, ignorando `lista_precios_id` del cliente. Debe consultar `precios_por_lista` al seleccionar el cliente y usar ese precio si existe. Afecta: `pedidos.js` → `agregarLinea()` y el dropdown de búsqueda de productos.
+- [x] **`organizacion_id` falta en líneas al duplicar pedido** — `duplicarPedido()` inserta en `productos_pedido` sin `organizacion_id`. Si la tabla tiene la columna `NOT NULL` o RLS filtra por organización, las líneas quedan invisibles o el insert falla. Afecta: `pedidos.js` → `duplicarPedido()`.
+
+### 🟡 Importantes — datos clave siempre desactualizados
+
+- [x] **`saldo_pendiente` no sube al crear un pedido** — `savePedido()` no actualiza `clientes.saldo_pendiente`. El control de crédito al crear pedidos (semáforo + límite) siempre muestra el saldo inicial, nunca la deuda acumulada real. Afecta: `pedidos.js` → `savePedido()`.
+- [x] **`fecha_ultima_compra` nunca se actualiza al entregar** — Al cambiar estado a `entregado` (desde pedidos y desde logística) no se actualiza `clientes.fecha_ultima_compra`. Los reportes de inactividad y el semáforo de morosidad quedan siempre desactualizados. Afecta: `pedidos.js` → `updateEstado()` y `logistica.js` → cambio de estado de entrega.
+- [x] **No hay listado global de devoluciones** — Se puede registrar una devolución desde el detalle de un pedido entregado, pero no existe ninguna pantalla/tab donde ver todas las devoluciones, su estado (`pendiente`/`aprobada`/`rechazada`) ni gestionarlas. Los datos se guardan pero son inaccesibles.
+- [x] **Botón "Exportar todos los datos" sin implementar** — En Configuración existe el botón "Exportar todos los datos (ZIP)" con su event listener, pero el método `exportarDatos()` no existe. Lanza error en consola. Afecta: `configuracion.js`.
+- [x] **"Total Facturado" en Reportes incluye pedidos cancelados** — En `tabVentas()`, la suma total no filtra por estado e incluye cancelados. Solo `totalEntregado` filtra correctamente. El KPI principal sobreestima ventas. Afecta: `reportes.js` → `tabVentas()`.
+- [x] **Filtro de período ignorado en tab Productos de Reportes** — La query usa `.gte('pedido.created_at', desde)` sobre una relación, que no filtra correctamente en Supabase JS. El tab Productos devuelve datos históricos completos sin importar el período seleccionado. Afecta: `reportes.js` → `tabProductos()`.
+
+### 🟢 Menores — engañan pero no bloquean
+
+- [x] **Semáforo de crédito usa lógica de inactividad en lugar de deuda** — Marca "moroso" si pasaron más de `dias_credito` días desde la última compra, pero eso es *inactividad*, no deuda impaga. Un cliente que pagó todo y no compró en 60 días aparece como moroso. Afecta: `clientes.js` → `renderSemaforo()`.
+- [x] **Mensaje de ayuda en Usuarios contradice el sistema de invitaciones** — El texto del info-box dice "el usuario debe registrarse solo primero", cuando el propio módulo tiene el flujo de invitaciones implementado. Afecta: `configuracion.js` → tab Usuarios.
+
+---
+
+## ❌ FASES PENDIENTES
+
+### FASE 7 - Comunicación e Integraciones
+- [ ] Timeline de interacciones por cliente (tabla `interacciones` ya existe)
+- [ ] Integración WhatsApp Business API (Twilio)
+- [ ] Click-to-Call telefonía
+- [ ] Email tracking (SendGrid)
+- [ ] Notificaciones push (Firebase)
+
+### FASE 8 - Automatización e IA
+- [ ] Workflows automáticos (seguimientos, asignación por zona)
+- [ ] Alertas inteligentes automáticas
+- [ ] Sugerencias de venta cruzada (IA)
+- [ ] Optimización de rutas (IA)
+
+### Mejoras completadas (prioridad media) ✅
+- [x] Notificaciones in-app: campana + badge + panel desplegable + polling 60s
+- [x] Exportación CSV de listados (Clientes, Productos, Pedidos) con filtros
+- [x] Validaciones visuales inline en formularios (Clientes, Productos)
+
+### Mejoras completadas (prioridad baja) ✅
+- [x] Ordenar tablas por columna (click en header) — Clientes, Productos, Pedidos. Server-side con `.order()` dinámico, clases `.th-sortable`, flechas ↑ ↓ ⇕
+- [x] Empty states mejorados — CSS `.empty-state` + `.btn-loading` / `.spinner-inline` para loading states y protección doble-click
+- [x] Loading states y protección doble-click — `btn.disabled = true` + clase `btn-loading`
+- [x] Manejo robusto de errores — `js/utils/error-handler.js`: detecta offline/online, sesión expirada, rate limiting. Banner persistente y redirect automático al login
+- [x] Búsqueda global desde navbar — `js/utils/global-search.js`: `Ctrl+K`, busca en paralelo clientes/productos/pedidos, debounce 300ms, navegación directa
+- [x] Exportación de reportes a PDF — Botón PDF en Reportes. Genera con jsPDF: KPIs + tablas del tab activo, footer paginado
+- [x] Filtros avanzados combinados — Panel colapsable "Avanzados" en Clientes/Productos/Pedidos con presets (localStorage) y badges removibles:
+  - Clientes: fecha última compra, scoring mín/máx, vendedor
+  - Productos: precio mín/máx, activo/inactivo
+  - Pedidos: fecha desde/hasta, vendedor, total mín/máx
+- [x] Flujo de onboarding — `js/utils/onboarding.js`: 3 pasos para orgs nuevas (0 clientes + 0 productos), se guarda en localStorage
