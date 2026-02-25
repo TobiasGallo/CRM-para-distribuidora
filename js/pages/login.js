@@ -162,7 +162,8 @@ const LoginPage = {
       form.dataset.rol = inv.rol;
       form.dataset.nombre = inv.nombre;
     } catch (err) {
-      infoDiv.innerHTML = `<div style="color:var(--danger);text-align:center;padding:0.5rem;">${err.message || 'Error al verificar la invitación'}</div>`;
+      console.error('Error verificando invitación:', err);
+      infoDiv.innerHTML = `<div style="color:var(--danger);text-align:center;padding:0.5rem;">No se pudo verificar la invitación. Contactá al administrador.</div>`;
     }
   },
 

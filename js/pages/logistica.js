@@ -7,6 +7,7 @@
 
 import supabase from '../config/supabase.js';
 import Toast from '../utils/toast.js';
+import Notif from '../utils/notif.js';
 
 const ESTADOS_RUTA = {
   pendiente:  { label: 'Pendiente',  color: '#f59e0b' },
@@ -79,9 +80,11 @@ const LogisticaPage = {
 
   async loadRutas() {
     try {
+      const orgId = window.App?.organization?.id;
       let query = supabase
         .from('rutas')
         .select('*, repartidor:repartidor_id(id, nombre)')
+        .eq('organizacion_id', orgId)
         .order('fecha', { ascending: false });
 
       const filtroEstado = document.getElementById('filterEstadoRuta')?.value;
@@ -388,7 +391,7 @@ const LogisticaPage = {
                         <strong>#${p.numero_pedido}</strong> — ${this.esc(p.cliente?.nombre_establecimiento || '-')}
                         <br><small>${this.esc(p.cliente?.direccion_completa || 'Sin dirección')} · ${moneda} ${Number(p.total).toLocaleString('es-AR')}</small>
                       </div>
-                      <button class="btn btn-sm btn-primary btn-agregar-parada" data-pedido-id="${p.id}" data-cliente-id="${p.cliente_id || ''}" data-numero="${p.numero_pedido}" data-cliente="${this.esc(p.cliente?.nombre_establecimiento || '')}" data-direccion="${this.esc(p.cliente?.direccion_completa || '')}" data-gps="${p.cliente?.ubicacion_gps || ''}">
+                      <button class="btn btn-sm btn-primary btn-agregar-parada" data-pedido-id="${p.id}" data-cliente-id="${p.cliente_id || ''}" data-numero="${p.numero_pedido}" data-cliente="${this.esc(p.cliente?.nombre_establecimiento || '')}" data-direccion="${this.esc(p.cliente?.direccion_completa || '')}" data-gps="${p.cliente?.ubicacion_gps || ''}" data-total="${p.total || 0}">
                         + Agregar
                       </button>
                     </div>
@@ -447,6 +450,9 @@ const LogisticaPage = {
           b.classList.toggle('active', b.dataset.estado === nuevoEstado);
         });
         Toast.success(`Estado cambiado a: ${ESTADOS_RUTA[nuevoEstado].label}`);
+        if (nuevoEstado === 'completada') {
+          Notif.notifyManagers('success', 'Ruta completada', ruta.nombre || 'Sin nombre', '#/rutas');
+        }
         this.loadRutas();
       } catch (err) {
         Toast.error('Error al cambiar estado');
@@ -465,12 +471,19 @@ const LogisticaPage = {
         cliente: btn.dataset.cliente,
         direccion: btn.dataset.direccion,
         gps: btn.dataset.gps,
+        total: parseFloat(btn.dataset.total) || 0,
         entregado: false,
         hora_entrega: null,
         nota: '',
       };
 
       ruta.secuencia_paradas = ruta.secuencia_paradas || [];
+
+      if (ruta.secuencia_paradas.some(p => p.pedido_id === parada.pedido_id)) {
+        Toast.warning(`El pedido #${parada.numero_pedido} ya está en esta ruta`);
+        return;
+      }
+
       ruta.secuencia_paradas.push(parada);
 
       try {
@@ -589,8 +602,10 @@ const LogisticaPage = {
           const { error: errRuta } = await supabase.from('rutas').update({ secuencia_paradas: ruta.secuencia_paradas }).eq('id', ruta.id);
           if (errRuta) throw errRuta;
 
-          // Quitar ruta_id del pedido
-          await supabase.from('pedidos').update({ ruta_id: null }).eq('id', parada.pedido_id);
+          // Quitar ruta_id del pedido; si no fue entregada, restaurar a en_preparacion
+          const updatePedido = { ruta_id: null };
+          if (!parada.entregado) updatePedido.estado = 'en_preparacion';
+          await supabase.from('pedidos').update(updatePedido).eq('id', parada.pedido_id);
 
           Toast.success(`Parada #${parada.numero_pedido} quitada`);
           newContainer.innerHTML = this._renderParadas(ruta.secuencia_paradas);
@@ -642,10 +657,12 @@ const LogisticaPage = {
 
     document.getElementById('btnConfirmDelete').addEventListener('click', async () => {
       try {
-        // Liberar pedidos de esta ruta
+        // Liberar pedidos de esta ruta; si no fueron entregados, restaurar a en_preparacion
         const paradas = ruta.secuencia_paradas || [];
         for (const p of paradas) {
-          await supabase.from('pedidos').update({ ruta_id: null }).eq('id', p.pedido_id);
+          const upd = { ruta_id: null };
+          if (!p.entregado) upd.estado = 'en_preparacion';
+          await supabase.from('pedidos').update(upd).eq('id', p.pedido_id);
         }
         const { error } = await supabase.from('rutas').delete().eq('id', id);
         if (error) throw error;
@@ -659,7 +676,8 @@ const LogisticaPage = {
   },
 
   closeModal() {
-    document.getElementById('modalContainer').innerHTML = '';
+    const mc = document.getElementById('modalContainer');
+    if (mc) mc.innerHTML = '';
     if (this._escHandler) {
       document.removeEventListener('keydown', this._escHandler);
       this._escHandler = null;
@@ -885,6 +903,7 @@ const LogisticaPage = {
         <th style="width:40px;">#</th>
         <th>Cliente / Dirección</th>
         <th style="width:80px;">Pedido</th>
+        <th style="width:90px;">A cobrar</th>
         <th style="width:70px;">Hora llegada</th>
         <th class="check">Entregado</th>
         <th style="width:120px;">Firma cliente</th>
@@ -892,7 +911,7 @@ const LogisticaPage = {
     </thead>
     <tbody>
       ${paradas.length === 0
-        ? `<tr><td colspan="6" style="text-align:center;padding:24px;color:#888;">Sin paradas asignadas</td></tr>`
+        ? `<tr><td colspan="7" style="text-align:center;padding:24px;color:#888;">Sin paradas asignadas</td></tr>`
         : paradas.map((p, i) => `
           <tr>
             <td class="num">${i + 1}</td>
@@ -901,6 +920,7 @@ const LogisticaPage = {
               <div class="dir">${this.esc(p.direccion || 'Sin dirección registrada')}</div>
             </td>
             <td><strong>#${p.numero_pedido}</strong></td>
+            <td style="font-weight:bold;">${moneda} ${Number(p.total || 0).toLocaleString('es-AR')}</td>
             <td>
               ${p.entregado && p.hora_entrega
                 ? `<span class="hora">${p.hora_entrega}</span>`
@@ -922,7 +942,7 @@ const LogisticaPage = {
 
   <div class="footer">
     <span>${this.esc(org?.nombre || '')} — Sistema CRM</span>
-    <span>Paradas: ${paradas.length} · Entregadas: ${paradas.filter(p => p.entregado).length}</span>
+    <span>Paradas: ${paradas.length} · Entregadas: ${paradas.filter(p => p.entregado).length} · Total a cobrar: ${moneda} ${paradas.reduce((s, p) => s + Number(p.total || 0), 0).toLocaleString('es-AR')}</span>
   </div>
 
   <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); };<\/script>

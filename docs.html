@@ -2279,6 +2279,373 @@ Router.register('clientes', (el) => ClientesPage.render(el));</code></pre>
       <!-- ==================== CHANGELOG ==================== -->
       <h2 id="changelog">Changelog / Historial de Cambios</h2>
 
+      <h3>Sesión 26 — organizacion_id faltante en búsqueda global, configuración y exportación</h3>
+
+      <h4>global-search.js — 3 queries sin organizacion_id (crítico)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/utils/global-search.js</code>.<br>
+        <strong>Causa:</strong> Los 3 queries del buscador global (Ctrl+K) — clientes, productos y pedidos — no
+        filtraban por <code>organizacion_id</code>. Cualquier usuario podía buscar y ver en tiempo real datos de
+        otras organizaciones.<br>
+        <strong>Fix:</strong> <code>const orgId = window.App?.organization?.id;</code> + <code>.eq('organizacion_id', orgId)</code>
+        en los 3 queries.
+      </p>
+
+      <h4>configuracion.js — renderUsuariosTab() sin organizacion_id (crítico)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/configuracion.js</code>.<br>
+        <strong>Causa:</strong> <code>supabase.from('usuarios').select('*')</code> traía todos los usuarios de todas
+        las organizaciones. La pestaña Usuarios mostraba empleados de otras empresas.<br>
+        <strong>Fix:</strong> <code>.eq('organizacion_id', orgId)</code> en el query.
+      </p>
+
+      <h4>configuracion.js — renderListasTab() sin organizacion_id — 3 queries (crítico)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/configuracion.js</code>.<br>
+        <strong>Causa:</strong> El query de <code>listas_precios</code> no filtraba por org. El conteo de productos
+        por lista (<code>precios_por_lista</code>, tabla de join sin columna propia de org) se hacía sin scope. El
+        conteo de clientes por lista tampoco filtraba.<br>
+        <strong>Fix:</strong> <code>.eq('organizacion_id', orgId)</code> en <code>listas_precios</code> y en
+        <code>clientes</code>. Para <code>precios_por_lista</code>: guard + <code>.in('lista_precios_id', listaIds)</code>
+        usando los IDs ya cargados de la org.
+      </p>
+
+      <h4>configuracion.js — exportarDatos() sin organizacion_id en 5 queries (crítico — exfiltración de datos)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/configuracion.js</code>.<br>
+        <strong>Causa:</strong> La función ya tenía <code>const orgId = window.App?.organization?.id</code> declarado
+        pero <strong>no lo usaba</strong> en ninguno de los 5 queries. La exportación ZIP incluía todos los clientes,
+        productos, pedidos, cobros y usuarios de todas las organizaciones del sistema.<br>
+        <strong>Fix:</strong> <code>.eq('organizacion_id', orgId)</code> agregado a los 5 queries en el <code>Promise.all</code>.
+      </p>
+
+      <h4>onboarding.js — shouldShow() conteos sin organizacion_id (medio)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/utils/onboarding.js</code>.<br>
+        <strong>Causa:</strong> Los 2 queries de conteo (<code>clientes</code> y <code>productos</code>) no filtraban
+        por org. Si cualquier otra organización en la DB tenía datos, el onboarding no aparecía para una org nueva vacía.<br>
+        <strong>Fix:</strong> <code>.eq('organizacion_id', orgId)</code> en ambos queries.
+      </p>
+
+      <h3>Sesión 25 — organizacion_id faltante en todos los queries SELECT principales (data isolation)</h3>
+
+      <h4>dashboard.js, clientes.js, logistica.js, pipeline.js, pedidos.js, productos.js — ~15 queries sin organizacion_id (crítico)</h4>
+      <p>
+        <strong>Archivos:</strong> <code>js/pages/dashboard.js</code>, <code>js/pages/clientes.js</code>,
+        <code>js/pages/logistica.js</code>, <code>js/pages/pipeline.js</code>, <code>js/pages/pedidos.js</code>,
+        <code>js/pages/productos.js</code>.<br>
+        <strong>Causa:</strong> Todos los queries de <em>lectura</em> (SELECT) en los pages principales del CRM
+        carecían de <code>.eq('organizacion_id', orgId)</code>. La sesión 23 había corregido esto en
+        <code>reportes.js</code> pero el resto de pages no tenía el filtro. En un entorno multi-tenant con más de
+        una organización, cada org podría ver datos de las demás si las políticas RLS de Supabase fallan o
+        se desconfiguraran.<br>
+        <strong>Queries corregidos:</strong>
+      </p>
+      <ul>
+        <li><code>dashboard.js</code>: <code>loadKPIs()</code> (4 queries — pedidos×2, clientes×2),
+          <code>loadChartVentas()</code>, <code>loadChartEstados()</code>, <code>loadChartVendedores()</code>,
+          <code>loadChartPipeline()</code>, <code>loadTopClientes()</code>, <code>loadStockBajo()</code>,
+          <code>loadAlertas()</code> (4 queries — productos×2, clientes, pedidos), <code>loadCierreCaja()</code>
+          — tablas: <code>pedidos</code>, <code>clientes</code>, <code>productos</code>,
+          <code>pipeline_oportunidades</code>, <code>cobros</code></li>
+        <li><code>clientes.js</code>: <code>loadClientes()</code> y <code>exportCSV()</code> — tabla: <code>clientes</code></li>
+        <li><code>logistica.js</code>: <code>loadRutas()</code> — tabla: <code>rutas</code></li>
+        <li><code>pipeline.js</code>: <code>loadOportunidades()</code> — tabla: <code>pipeline_oportunidades</code></li>
+        <li><code>pedidos.js</code>: <code>loadPedidos()</code> — tabla: <code>pedidos</code></li>
+        <li><code>productos.js</code>: <code>loadProductos()</code> (path general y path filtro stock bajo) — tabla: <code>productos</code></li>
+      </ul>
+      <p>
+        <strong>Fix:</strong> <code>const orgId = window.App?.organization?.id;</code> al inicio de cada función
+        + <code>.eq('organizacion_id', orgId)</code> en cada query afectado. Total: ~15 queries en 6 archivos.
+      </p>
+
+      <h3>Sesión 24 — Crash en sidebar, onboarding para todos los roles y error técnico expuesto</h3>
+
+      <h4>sidebar.js — crash si nombre es null (bajo)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/components/sidebar.js</code>.<br>
+        <strong>Causa:</strong> <code>userProfile.nombre.split(' ')</code> lanzaba <code>TypeError</code> si
+        <code>nombre</code> era <code>null</code>. El ternario protegía contra <code>userProfile</code> nulo
+        pero no contra <code>nombre</code> nulo. Mismo patrón corregido en <code>configuracion.js</code> (sesión 21).<br>
+        <strong>Fix:</strong> <code>(userProfile.nombre || '').split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || '??'</code>
+      </p>
+
+      <h4>onboarding.js — se mostraba a vendedores y repartidores (bajo)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/utils/onboarding.js</code>.<br>
+        <strong>Causa:</strong> <code>shouldShow()</code> no verificaba el rol del usuario. Un vendedor o repartidor
+        en una organización sin datos veía el onboarding con instrucciones para "invitar usuarios" y "configurar
+        la organización" — secciones que esos roles no pueden acceder.<br>
+        <strong>Fix:</strong> Guard al inicio de <code>shouldShow()</code>: retorna <code>false</code> si el rol
+        no es <code>owner</code> ni <code>admin</code>.
+      </p>
+
+      <h4>login.js — error técnico de Supabase expuesto en invite check (bajo)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/login.js</code>.<br>
+        <strong>Causa:</strong> El bloque <code>catch</code> del flujo de invitación mostraba <code>err.message</code>
+        al usuario directamente. Si el RPC fallaba, mensajes internos de Supabase podían aparecer en pantalla.
+        El resto del login ya mapea errores a mensajes amigables mediante <code>getErrorMessage()</code>.<br>
+        <strong>Fix:</strong> <code>console.error(err)</code> y mensaje genérico al usuario.
+      </p>
+
+      <h3>Sesión 23 — Filtros multi-tenant en reportes, usuario en notificaciones e integración notif.js</h3>
+
+      <h4>reportes.js — 7 queries sin organizacion_id (medio)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/reportes.js</code>.<br>
+        <strong>Causa:</strong> Todos los tabs (ventas, vendedores, productos, morosidad, clientes inactivos, entregas)
+        hacían sus queries sin <code>.eq('organizacion_id', orgId)</code>. Todos los demás módulos aplican este filtro
+        explícito como defensa en profundidad además del RLS de Supabase. Si RLS falla o se desconfigura, reportes
+        mostraría datos de todas las organizaciones.<br>
+        <strong>Fix:</strong> <code>const orgId = window.App?.organization?.id</code> + <code>.eq('organizacion_id', orgId)</code>
+        en los 7 queries: <code>pedidos</code> (tabVentas, tabVendedores, tabProductos),
+        <code>metas_vendedor</code> (tabVendedores), <code>clientes</code> (tabMorosidad, tabClientesInactivos),
+        <code>rutas</code> (tabEntregas).
+      </p>
+
+      <h4>notifications.js load() — sin filtro de usuario_id (medio)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/utils/notifications.js</code>.<br>
+        <strong>Causa:</strong> La función <code>load()</code> traía notificaciones sin filtrar por <code>usuario_id</code>.
+        La campana mostraba las notificaciones de cualquier usuario (o de toda la org), no solo las del usuario logueado.<br>
+        <strong>Fix:</strong> <code>.eq('usuario_id', window.App?.userProfile?.id)</code> agregado a la query.
+      </p>
+
+      <h4>notif.js — integración incompleta en clientes, pipeline y logística (bajo)</h4>
+      <p>
+        <strong>Archivos:</strong> <code>js/pages/clientes.js</code>, <code>js/pages/pipeline.js</code>,
+        <code>js/pages/logistica.js</code>.<br>
+        <strong>Causa:</strong> El archivo <code>notif.js</code> (utilidad para escribir notificaciones en la tabla)
+        solo estaba importado en <code>pedidos.js</code> y <code>productos.js</code>. Acciones importantes como crear
+        un cliente, agregar una oportunidad o completar una ruta no generaban notificaciones en la campana.<br>
+        <strong>Fix:</strong> Importado <code>Notif</code> en los 3 archivos y añadidas llamadas a
+        <code>Notif.notifyManagers()</code> en los momentos clave:
+        nuevo cliente → notificación tipo <em>success</em>;
+        nueva oportunidad → <em>info</em>;
+        ruta completada → <em>success</em>.
+      </p>
+
+      <h3>Sesión 22 — closeModal() crash, race conditions y handler leak</h3>
+
+      <h4>closeModal() crash por null en 6 páginas (medio)</h4>
+      <p>
+        <strong>Archivos:</strong> <code>pipeline.js</code>, <code>clientes.js</code>, <code>logistica.js</code>,
+        <code>pedidos.js</code>, <code>productos.js</code>, <code>configuracion.js</code>.<br>
+        <strong>Causa:</strong> Todas las implementaciones de <code>closeModal()</code> hacían
+        <code>document.getElementById('modalContainer').innerHTML = ''</code> sin verificar que el elemento existiera.
+        Si el usuario abría un modal y navegaba al Dashboard o Reportes (páginas que no tienen
+        <code>#modalContainer</code>) sin cerrarlo, el <code>_escHandler</code> quedaba activo en el documento.
+        Al presionar ESC desde esas páginas se disparaba <code>closeModal()</code> → <code>TypeError: Cannot set
+        properties of null (setting 'innerHTML')</code>, rompiendo la sesión.<br>
+        <strong>Fix:</strong> <code>const mc = document.getElementById('modalContainer'); if (mc) mc.innerHTML = '';</code>
+        aplicado en los 6 archivos.
+      </p>
+
+      <h4>Race condition en notifications.js y global-search.js (bajo)</h4>
+      <p>
+        <strong>Archivos:</strong> <code>js/utils/notifications.js</code>, <code>js/utils/global-search.js</code>.<br>
+        <strong>Causa:</strong> El método <code>open()</code> registraba el handler de click externo dentro de un
+        <code>setTimeout(..., 10)</code> para evitar que el click de apertura lo cerrara inmediatamente.
+        Si <code>close()</code> se ejecutaba dentro de esa ventana de 10ms, removía <code>null</code> (el handler
+        aún no se había registrado), y cuando el timeout disparaba agregaba un listener que nunca se removería.<br>
+        <strong>Fix:</strong> Limpiar el handler previo antes del <code>setTimeout</code> si existe.
+      </p>
+
+      <h4>Doble _escHandler sin limpiar en clientes.js openFicha() (bajo)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/clientes.js</code>.<br>
+        <strong>Causa:</strong> <code>openModalEditar/Nuevo</code> y <code>openFicha</code> registraban cada uno
+        su propio <code>_escHandler</code> en <code>document</code>. Al abrir la ficha, la referencia
+        <code>this._escHandler</code> se sobreescribía sin remover el anterior, dejando el primer handler
+        acumulado en el documento.<br>
+        <strong>Fix:</strong> Verificar y remover handler existente antes de registrar el nuevo en
+        <code>openFicha()</code>.
+      </p>
+
+      <h3>Sesión 21 — Perfil vacío, código muerto y gráfico inconsistente</h3>
+
+      <h4>Perfil de usuario siempre mostraba campos vacíos (alto)</h4>
+      <p>
+        <code>renderPerfilTab()</code> usaba <code>window.App?.user</code> (objeto auth de Supabase, solo contiene <code>id</code> y <code>email</code>)
+        en vez de <code>window.App?.userProfile</code> (tabla <code>usuarios</code>, que tiene <code>nombre</code>, <code>telefono</code>, <code>rol</code>).
+        El formulario "Mi Perfil" siempre arrancaba vacío sin importar los datos del usuario.
+        Fix: cambiado a <code>window.App?.userProfile || {}</code>.
+      </p>
+      <ul>
+        <li><strong>Archivo:</strong> <code>js/pages/configuracion.js</code> — <code>renderPerfilTab()</code></li>
+      </ul>
+
+      <h4>exportarDatos() definido dos veces — código muerto (medio)</h4>
+      <p>
+        El objeto <code>ConfiguracionPage</code> tenía dos métodos con la misma clave <code>exportarDatos</code>.
+        En JavaScript la segunda definición pisa a la primera, dejando la primera (descargaba CSVs individuales sin ZIP) como
+        código muerto inalcanzable. Se eliminó la definición duplicada; solo queda la implementación correcta con JSZip.
+      </p>
+      <ul>
+        <li><strong>Archivo:</strong> <code>js/pages/configuracion.js</code></li>
+      </ul>
+
+      <h4>Gráfico "Pedidos por Estado" ignoraba el selector de período (medio)</h4>
+      <p>
+        <code>loadChartEstados()</code> hacía <code>SELECT estado FROM pedidos</code> sin filtro de fecha.
+        Todos los demás gráficos del dashboard usaban <code>getDesde()</code> para respetar el período (7d, 30d, etc.).
+        Resultado: el gráfico de dona mostraba distribución histórica acumulada sin importar el período seleccionado.
+        Fix: aplicado <code>.gte('created_at', desde)</code> igual que los demás gráficos.
+      </p>
+      <ul>
+        <li><strong>Archivo:</strong> <code>js/pages/dashboard.js</code> — <code>loadChartEstados()</code></li>
+      </ul>
+
+      <h4>Crash en pestaña Usuarios si nombre es null (medio)</h4>
+      <p>
+        <code>renderUsuariosTab()</code> calculaba el avatar con <code>u.nombre.split(' ')</code>.
+        Si un usuario fue creado por invitación y no completó el registro, <code>nombre</code> puede ser null,
+        generando <code>TypeError: Cannot read properties of null (reading 'split')</code> que destruía toda la pestaña Usuarios.
+        Fix: <code>(u.nombre || '?').split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || '?'</code>.
+      </p>
+      <ul>
+        <li><strong>Archivo:</strong> <code>js/pages/configuracion.js</code> — <code>renderUsuariosTab()</code></li>
+      </ul>
+
+      <h3>Sesión 20 — SKU null crash y foco perdido al editar líneas de pedido</h3>
+
+      <h4>Buscador de productos crasheaba si SKU era null (medio)</h4>
+      <p>El buscador de productos en el modal de nuevo pedido y en el modal de detalle hacía <code>p.sku.toLowerCase()</code> directamente. Si algún producto en la DB tenía <code>sku = null</code> (campo opcional), el filtro lanzaba <code>TypeError: Cannot read properties of null</code>, bloqueando completamente el buscador. El usuario no podía agregar productos al pedido. Fix: cambiar a <code>(p.sku || '').toLowerCase()</code>. Corregido en las dos ocurrencias del patrón en <code>pedidos.js</code>.</p>
+
+      <h4>El input de cantidad/precio perdía el foco en cada keystroke (medio)</h4>
+      <p>Al editar cantidad o precio en el detalle de un pedido, el handler de <code>input</code> llamaba a <code>renderDetalleLineas()</code> que hacía <code>container.innerHTML = ...</code> destruyendo y recreando todo el DOM. El input en el que el usuario estaba escribiendo perdía el foco instantáneamente — era imposible ingresar números de más de un dígito sin hacer click nuevamente. Fix: al inicio de cada llamada se reemplaza el nodo del container con un clone vacío para limpiar listeners previos; los eventos <code>input</code> solo actualizan el <code>&lt;div class="subtotal-linea"&gt;</code> de la fila afectada sin reconstruir el DOM; la reconstrucción completa solo ocurre al eliminar una línea (acción discreta).</p>
+
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/pages/pedidos.js</code> — guard <code>(p.sku || '')</code> en dos ocurrencias; <code>renderDetalleLineas()</code> con delegación y actualización quirúrgica del subtotal</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 19 — Búsqueda de cliente en exportación y notificación de entrega</h3>
+
+      <h4>exportCSV pedidos no aplicaba búsqueda por nombre de cliente (alto)</h4>
+      <p><code>loadPedidos()</code> implementa una búsqueda de dos pasos cuando el texto no es un número: primero busca en <code>clientes</code> por <code>nombre_establecimiento</code>, obtiene los IDs coincidentes, y filtra <code>pedidos</code> por <code>cliente_id IN (ids)</code>. Sin embargo <code>exportCSV()</code> usaba <code>query.or(`numero_pedido.ilike.${s}`)</code> — un ILIKE sobre un campo numérico que no retorna resultados de texto. El efecto era que el usuario veía 5 pedidos de "Panadería García" en la tabla y al exportar obtenía 0 resultados. Fix: replicar el mismo two-step en <code>exportCSV()</code>.</p>
+
+      <h4>Sin notificación al marcar pedido como "entregado" (bajo)</h4>
+      <p>El sistema generaba notificaciones para nuevo pedido, pedido cancelado y devolución pendiente, pero no para el evento de entrega. Al cambiar el estado a <code>entregado</code>, solo se actualizaban <code>fecha_entrega_real</code> y <code>fecha_ultima_compra</code> del cliente sin ningún <code>Notif.notifyManagers()</code>. Fix: se agregó notificación tipo <code>success</code> con número de pedido, nombre del cliente y monto.</p>
+
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/pages/pedidos.js</code> — búsqueda two-step por nombre de cliente en <code>exportCSV</code>; <code>Notif.notifyManagers</code> al entregar</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 18 — Control de roles en estados de pedido y guard de rutas</h3>
+
+      <h4>Repartidor podía cambiar pedido a cualquier estado (medio)</h4>
+      <p>En <code>openDetalle()</code> de <code>pedidos.js</code>, el array de estados se construía con los 6 valores posibles (<code>pendiente, en_preparacion, en_ruta, entregado, cancelado, con_incidencia</code>) sin ningún filtro de rol. El click handler tampoco tenía validación de permisos. Un repartidor podía abrir cualquier pedido y hacer click en "Cancelado" — la actualización llegaba a la DB sin objeción.</p>
+      <p>Fix: se detecta el rol con <code>Permissions.getCurrentRole() === 'repartidor'</code> y se muestra solo <code>['en_ruta', 'entregado']</code>. Adicionalmente hay un guard en el click handler que bloquea estados no permitidos aunque el DOM sea manipulado.</p>
+
+      <h4>Router SPA sin guard de permisos de ruta (bajo)</h4>
+      <p><code>Router.handleRoute()</code> llamaba directamente <code>this.routes[route](el)</code> sin verificar si el rol del usuario tiene acceso a esa ruta. El sidebar ocultaba los links según rol, pero cualquier usuario que escribiera <code>#/reportes</code> o <code>#/configuracion</code> en la barra de URL obtenía acceso completo independientemente de su rol.</p>
+      <p>Fix: se agregó <code>import Permissions</code> a <code>router.js</code> y un guard al inicio de <code>handleRoute()</code>: si <code>window.App.userProfile</code> ya está cargado y <code>!Permissions.canSeeRoute(route)</code>, se renderiza una pantalla "Acceso denegado" con botón para volver al dashboard.</p>
+
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/pages/pedidos.js</code> — estados filtrados por rol en <code>openDetalle</code>; guard en click handler del estado selector</li>
+        <li><code>js/utils/router.js</code> — guard de permisos en <code>handleRoute</code>; <code>import Permissions</code> agregado</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 17 — Exportación de pedidos, listeners acumulados y paradas duplicadas</h3>
+
+      <h4>exportCSV pedidos ignoraba filtros avanzados (alto)</h4>
+      <p>La función <code>exportCSV()</code> en <code>pedidos.js</code> aplicaba únicamente los filtros <code>estado</code> y <code>search</code>. Los filtros avanzados <code>fechaDesde</code>, <code>fechaHasta</code>, <code>vendedor</code>, <code>totalMin</code> y <code>totalMax</code> se ignoraban en silencio: el CSV exportaba todos los pedidos aunque el usuario hubiera filtrado por rango de fechas o por vendedor. Bug idéntico al corregido en <code>clientes.js</code> en Sesión 16. Fix: agregar los mismos 5 bloques de filtro que usa <code>loadPedidos()</code>.</p>
+
+      <h4>Listener import-done se acumulaba al navegar entre páginas (medio)</h4>
+      <p>El router SPA llama <code>render()</code> → <code>initEvents()</code> cada vez que el usuario navega a Clientes o Productos. Dentro de <code>initEvents()</code>, <code>window.addEventListener('crm:import-done', ...)</code> apilaba un nuevo handler sin eliminar el anterior. Después de navegar a Clientes 5 veces, había 5 handlers activos y <code>loadClientes()</code> se disparaba 5 veces por cada import. Fix: guardar la referencia del handler en <code>this._importDoneHandler</code> y hacer <code>window.removeEventListener</code> antes de registrarlo nuevamente. Aplica a <code>clientes.js</code> y <code>productos.js</code>.</p>
+
+      <h4>Parada duplicada en ruta de logística (medio)</h4>
+      <p>Al agregar un pedido a una ruta, <code>secuencia_paradas.push(parada)</code> se ejecutaba sin verificar si ese <code>pedido_id</code> ya existía en el array. El usuario podía agregar el mismo pedido múltiples veces a la misma ruta. Fix: antes del push se verifica con <code>.some(p => p.pedido_id === parada.pedido_id)</code>; si ya está se muestra un <code>Toast.warning</code> y se aborta la operación.</p>
+
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/pages/pedidos.js</code> — exportCSV aplica filtros avanzados (fechaDesde, fechaHasta, vendedor, totalMin, totalMax)</li>
+        <li><code>js/pages/clientes.js</code> — import-done handler con remove/add para evitar acumulación</li>
+        <li><code>js/pages/productos.js</code> — import-done handler con remove/add para evitar acumulación</li>
+        <li><code>js/pages/logistica.js</code> — deduplicación de paradas al agregar a ruta</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 16 — Correcciones de integridad de saldo, notificaciones y exportación</h3>
+
+      <h4>savePedido: race condition en saldo_pendiente (crítico)</h4>
+      <p>Al crear un pedido, <code>savePedido()</code> leía el <code>saldo_pendiente</code> del cliente desde la cache en memoria (<code>this.clientes.find()</code>). En sesiones con múltiples operaciones concurrentes, el valor local podía estar desactualizado. Se corrigió igual que el bug homólogo en <code>saveCobro</code>: antes de sumar el nuevo total se hace un SELECT fresco desde Supabase para obtener el saldo real.</p>
+
+      <h4>Notificación de nuevo pedido mostraba "#undefined" (alto)</h4>
+      <p>Al crear un pedido, <code>Notif.notifyManagers()</code> recibía <code>#undefined</code> como número de pedido. El campo <code>numero_pedido</code> es generado por la DB (trigger/secuencia) y no es devuelto por <code>.insert().select('id').single()</code>. Se cambió a <code>.select('id, numero_pedido')</code> para que Supabase devuelva ambos campos del registro insertado.</p>
+
+      <h4>Eliminar pedido no ajustaba saldo_pendiente (alto)</h4>
+      <p><code>confirmarEliminar()</code> en pedidos borraba el pedido de la DB pero nunca decrementaba <code>saldo_pendiente</code> en el cliente. Ahora, tras borrar exitosamente, si el pedido no estaba cancelado y tenía total &gt; 0, se hace un SELECT fresco del saldo y se resta el total del pedido eliminado (con <code>Math.max(0, ...)</code> para evitar negativos).</p>
+
+      <h4>Duplicar pedido no sumaba saldo_pendiente (alto)</h4>
+      <p><code>duplicarPedido()</code> creaba el nuevo pedido y sus líneas pero nunca actualizaba <code>saldo_pendiente</code> del cliente. Se corrigió: después de insertar las líneas se calcula el total del duplicado (suma de subtotales) y se incrementa el saldo con lectura fresca desde la DB.</p>
+
+      <h4>exportCSV de clientes ignoraba filtros avanzados (medio)</h4>
+      <p>La función <code>exportCSV()</code> aplicaba solo los filtros básicos (búsqueda, zona, estado_lead, tags). Los filtros avanzados (fecha última compra, rango de scoring, vendedor asignado) se ignoraban silenciosamente. Se corrigió espejando exactamente la misma lógica de filtros que <code>loadClientes()</code>.</p>
+
+      <h4>guardarCambiosPedido ajustaba saldo en pedidos cancelados (medio)</h4>
+      <p>Al editar un pedido cancelado y cambiarle el total, <code>guardarCambiosPedido()</code> calculaba el diferencial y lo sumaba/restaba de <code>saldo_pendiente</code>, cuando en realidad los pedidos cancelados ya tuvieron su saldo descontado. Se agregó la condición <code>&amp;&amp; pedido.estado !== 'cancelado'</code> para saltear el ajuste en ese caso.</p>
+
+      <h4>Listener import-done con { once: true } se consumía (bajo)</h4>
+      <p>En <code>clientes.js</code> y <code>productos.js</code>, el evento <code>crm:import-done</code> se escuchaba con <code>{ once: true }</code>. Esto hacía que después del primer import exitoso el listener se eliminara automáticamente, y los imports subsiguientes en la misma sesión no refrescaban la tabla. Se quitó <code>{ once: true }</code> de ambos archivos.</p>
+
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/pages/pedidos.js</code> — race condition savePedido; numero_pedido en notificación; saldo al eliminar; saldo al duplicar; guard cancelado en guardarCambiosPedido</li>
+        <li><code>js/pages/clientes.js</code> — exportCSV con filtros avanzados; import-done sin once</li>
+        <li><code>js/pages/productos.js</code> — import-done sin once</li>
+      </ul>
+
+      <hr>
+
+      <h3>Sesión 15 — Notificaciones, Pipeline sync &amp; correcciones de integridad</h3>
+
+      <h4>Sistema de notificaciones: emisores implementados (alto)</h4>
+      <p>El sistema de notificaciones tenía display, polling, badge y panel completos, pero <strong>nunca se creaba ninguna notificación</strong> — la tabla siempre estaba vacía. Se creó <code>js/utils/notif.js</code> con la función <code>Notif.notifyManagers(tipo, titulo, mensaje, link)</code> que consulta los usuarios <code>owner/admin/gerente</code> de la organización y hace un batch insert en <code>notificaciones</code>. Se dispara en: nuevo pedido creado, pedido cancelado, devolución registrada, y stock bajo mínimo al ajustar stock manualmente.</p>
+
+      <h4>Pipeline sincroniza estado_lead del cliente (alto)</h4>
+      <p>Al arrastrar una tarjeta del pipeline a <code>primer_pedido</code> o <code>cliente_activo</code>, ahora también se actualiza <code>clientes.estado_lead = 'activo'</code>. Aplica tanto al drag &amp; drop como al guardar desde el modal de edición. El estado anterior de la DB no se sobreescribe si el cliente ya era activo.</p>
+
+      <h4>Quitar parada restaura estado del pedido (medio)</h4>
+      <p>Al quitar una parada de una ruta, si el pedido no estaba entregado se actualizaba solo <code>ruta_id = null</code>, dejando el estado como <code>en_ruta</code> indefinidamente (invisible para logística que filtra <code>pendiente | en_preparacion</code>). Ahora se hace <code>UPDATE pedidos SET ruta_id = null, estado = 'en_preparacion'</code> para paradas no entregadas.</p>
+
+      <h4>saveCobro race condition corregida (medio)</h4>
+      <p>En <code>clientes.js saveCobro()</code>, el saldo anterior se leía del cache en memoria (<code>this.clientes.find()</code>), igual que el bug ya corregido en pedidos. Ahora se hace un SELECT fresco desde Supabase antes de calcular el nuevo saldo.</p>
+
+      <h4>Devoluciones: estado pendiente + flujo de aprobación (medio)</h4>
+      <p>Las devoluciones se creaban siempre con <code>estado: 'aprobada'</code> hardcodeado. Ahora se crean con <code>estado: 'pendiente'</code> y en el listado global de devoluciones aparecen botones "Aprobar" y "Rechazar" para las devoluciones en estado pendiente (visible para <code>owner/admin/gerente</code>).</p>
+
+      <h4>Hoja de ruta con monto a cobrar por parada (bajo)</h4>
+      <p>La impresión de la hoja de ruta ahora incluye una columna "A cobrar" con el total de cada pedido. Se agregó <code>data-total</code> al botón de agregar parada y se persiste en <code>secuencia_paradas</code> el campo <code>total</code>.</p>
+
+      <h4>Permisos para cobros (bajo)</h4>
+      <p>Se agregó la entrada <code>cobros: { crear: ['owner', 'admin', 'gerente', 'vendedor', 'administrativo'] }</code> en <code>permissions.js</code>. El botón "Registrar pago" en la ficha del cliente ahora respeta <code>Permissions.can('crear', 'cobros')</code> — los repartidores ya no lo ven.</p>
+
+      <p><strong>Archivos modificados:</strong></p>
+      <ul>
+        <li><code>js/utils/notif.js</code> — nuevo archivo con <code>Notif.notifyManagers()</code></li>
+        <li><code>js/pages/pedidos.js</code> — notificaciones en savePedido y cancelar</li>
+        <li><code>js/pages/productos.js</code> — notificación al ajustar stock bajo mínimo</li>
+        <li><code>js/pages/clientes.js</code> — notificación en saveCobro; race condition corregida; permiso cobros</li>
+        <li><code>js/pages/pipeline.js</code> — sync estado_lead en drag&amp;drop y saveOportunidad</li>
+        <li><code>js/pages/logistica.js</code> — quitar parada restaura estado; monto en parada y hoja de ruta</li>
+        <li><code>js/pages/pedidos.js</code> — devoluciones estado pendiente</li>
+        <li><code>js/utils/permissions.js</code> — permisos cobros agregados</li>
+      </ul>
+
+      <hr>
+
       <h3>Sesión 14 — Correcciones críticas &amp; mejoras de integridad</h3>
 
       <h4>window.App.user → window.App.userProfile (crítico)</h4>

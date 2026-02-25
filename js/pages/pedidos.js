@@ -7,6 +7,7 @@ import supabase from '../config/supabase.js';
 import Toast from '../utils/toast.js';
 import Permissions from '../utils/permissions.js';
 import CSV from '../utils/csv.js';
+import Notif from '../utils/notif.js';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -154,9 +155,11 @@ const PedidosPage = {
   async loadPedidos() {
     sessionStorage.setItem('crm_filters_pedidos', JSON.stringify(this.filters));
     try {
+      const orgId = window.App?.organization?.id;
       let query = supabase
         .from('pedidos')
-        .select('*, cliente:cliente_id(id, nombre_establecimiento), vendedor:vendedor_id(id, nombre)', { count: 'exact' });
+        .select('*, cliente:cliente_id(id, nombre_establecimiento), vendedor:vendedor_id(id, nombre)', { count: 'exact' })
+        .eq('organizacion_id', orgId);
 
       if (this.filters.estado) {
         query = query.eq('estado', this.filters.estado);
@@ -561,10 +564,29 @@ const PedidosPage = {
         .select('*, cliente:cliente_id(nombre_establecimiento), vendedor:vendedor_id(nombre)');
 
       if (this.filters.search) {
-        const s = `%${this.filters.search}%`;
-        query = query.or(`numero_pedido.ilike.${s}`);
+        const num = parseInt(this.filters.search);
+        if (!isNaN(num)) {
+          query = query.eq('numero_pedido', num);
+        } else {
+          // Búsqueda por nombre de cliente (two-step igual que loadPedidos)
+          const { data: clienteMatch } = await supabase
+            .from('clientes')
+            .select('id')
+            .ilike('nombre_establecimiento', `%${this.filters.search}%`);
+          const ids = (clienteMatch || []).map(c => c.id);
+          if (ids.length > 0) {
+            query = query.in('cliente_id', ids);
+          } else {
+            query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+          }
+        }
       }
       if (this.filters.estado) query = query.eq('estado', this.filters.estado);
+      if (this.filters.fechaDesde) query = query.gte('created_at', this.filters.fechaDesde);
+      if (this.filters.fechaHasta) query = query.lte('created_at', this.filters.fechaHasta + 'T23:59:59');
+      if (this.filters.vendedor) query = query.eq('vendedor_id', this.filters.vendedor);
+      if (this.filters.totalMin) query = query.gte('total', parseFloat(this.filters.totalMin));
+      if (this.filters.totalMax) query = query.lte('total', parseFloat(this.filters.totalMax));
 
       const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
@@ -785,7 +807,7 @@ const PedidosPage = {
     if (search) {
       const s = search.toLowerCase();
       filtered = filtered.filter(p =>
-        p.nombre.toLowerCase().includes(s) || p.sku.toLowerCase().includes(s)
+        p.nombre.toLowerCase().includes(s) || (p.sku || '').toLowerCase().includes(s)
       );
     }
 
@@ -931,7 +953,8 @@ const PedidosPage = {
   },
 
   closeModal() {
-    document.getElementById('modalContainer').innerHTML = '';
+    const mc = document.getElementById('modalContainer');
+    if (mc) mc.innerHTML = '';
     if (this._escHandler) {
       document.removeEventListener('keydown', this._escHandler);
       this._escHandler = null;
@@ -994,7 +1017,7 @@ const PedidosPage = {
       const { data: pedido, error: errPedido } = await supabase
         .from('pedidos')
         .insert(pedidoData)
-        .select('id')
+        .select('id, numero_pedido')
         .single();
       if (errPedido) throw errPedido;
 
@@ -1013,18 +1036,23 @@ const PedidosPage = {
         .insert(lineasData);
       if (errLineas) throw errLineas;
 
-      // 3. Actualizar saldo_pendiente del cliente (+= total del pedido)
+      // 3. Actualizar saldo_pendiente del cliente (leer fresh de DB para evitar race condition)
       const clienteId = pedidoData.cliente_id;
       if (clienteId && total > 0) {
-        const cliente = this.clientes.find(c => c.id === clienteId);
-        const saldoActual = Number(cliente?.saldo_pendiente || 0);
+        const { data: cd } = await supabase
+          .from('clientes').select('saldo_pendiente').eq('id', clienteId).single();
         await supabase
           .from('clientes')
-          .update({ saldo_pendiente: saldoActual + total })
+          .update({ saldo_pendiente: Number(cd?.saldo_pendiente || 0) + total })
           .eq('id', clienteId);
       }
 
       Toast.success('Pedido creado correctamente');
+      // Notificar a managers del nuevo pedido
+      const clienteNombre = this.clientes.find(c => c.id === pedidoData.cliente_id)?.nombre_establecimiento || '';
+      const moneda = window.App?.organization?.moneda || 'ARS';
+      Notif.notifyManagers('info', `Nuevo pedido #${pedido.numero_pedido}`,
+        `${clienteNombre} · ${moneda} ${total.toLocaleString('es-AR')}`, '#/pedidos');
       this.closeModal();
       this.loadPedidos();
     } catch (err) {
@@ -1072,7 +1100,9 @@ const PedidosPage = {
       ? new Date(pedido.fecha_entrega_programada).toISOString().split('T')[0]
       : '';
 
-    const estados = ['pendiente', 'en_preparacion', 'en_ruta', 'entregado', 'cancelado', 'con_incidencia'];
+    const todosEstados = ['pendiente', 'en_preparacion', 'en_ruta', 'entregado', 'cancelado', 'con_incidencia'];
+    const esRepartidor = Permissions.getCurrentRole() === 'repartidor';
+    const estados = esRepartidor ? ['en_ruta', 'entregado'] : todosEstados;
 
     document.getElementById('modalContainer').innerHTML = `
       <div class="modal-overlay" id="detalleModal">
@@ -1221,6 +1251,7 @@ const PedidosPage = {
       if (!btn) return;
       const nuevoEstado = btn.dataset.estado;
       if (nuevoEstado === pedido.estado) return;
+      if (esRepartidor && !['en_ruta', 'entregado'].includes(nuevoEstado)) return;
 
       try {
         const updateData = { estado: nuevoEstado };
@@ -1231,12 +1262,15 @@ const PedidosPage = {
         const { error } = await supabase.from('pedidos').update(updateData).eq('id', pedido.id);
         if (error) throw error;
 
-        // Al entregar: actualizar fecha_ultima_compra del cliente
+        // Al entregar: actualizar fecha_ultima_compra del cliente y notificar
         if (nuevoEstado === 'entregado' && pedido.cliente_id) {
           await supabase
             .from('clientes')
             .update({ fecha_ultima_compra: new Date().toISOString() })
             .eq('id', pedido.cliente_id);
+          const monedaEnt = window.App?.organization?.moneda || 'ARS';
+          Notif.notifyManagers('success', `Pedido #${pedido.numero_pedido} entregado`,
+            `${pedido.cliente?.nombre_establecimiento || ''} · ${monedaEnt} ${Number(pedido.total).toLocaleString('es-AR')}`, '#/pedidos');
         }
 
         // Al cancelar: descontar saldo_pendiente del cliente (nunca por debajo de 0)
@@ -1245,6 +1279,10 @@ const PedidosPage = {
             .from('clientes').select('saldo_pendiente').eq('id', pedido.cliente_id).single();
           const nuevoSaldo = Math.max(0, Number(cd?.saldo_pendiente || 0) - Number(pedido.total));
           await supabase.from('clientes').update({ saldo_pendiente: nuevoSaldo }).eq('id', pedido.cliente_id);
+          // Notificar cancelación a managers
+          const moneda = window.App?.organization?.moneda || 'ARS';
+          Notif.notifyManagers('warning', `Pedido #${pedido.numero_pedido} cancelado`,
+            `${pedido.cliente?.nombre_establecimiento || ''} · ${moneda} ${Number(pedido.total).toLocaleString('es-AR')}`, '#/pedidos');
         }
 
         Toast.success(`Estado cambiado a: ${this.estadoLabel(nuevoEstado)}`);
@@ -1456,8 +1494,13 @@ const PedidosPage = {
   // ========================================
 
   renderDetalleLineas() {
-    const container = document.getElementById('lineasDetalle');
-    if (!container) return;
+    const old = document.getElementById('lineasDetalle');
+    if (!old) return;
+
+    // Reemplazar el nodo para limpiar listeners previos sin perder el slot en el DOM
+    const container = old.cloneNode(false);
+    old.parentNode.replaceChild(container, old);
+
     const moneda = window.App?.organization?.moneda || 'ARS';
 
     if (this.detalleLineas.length === 0) {
@@ -1468,40 +1511,42 @@ const PedidosPage = {
 
     container.innerHTML = this.detalleLineas.map((l, i) => `
       <div class="producto-linea" data-index="${i}">
-        <div class="producto-nombre-linea">${this.esc(l.nombre)} <small>${l.sku}</small></div>
+        <div class="producto-nombre-linea">${this.esc(l.nombre)} <small>${l.sku || ''}</small></div>
         <input type="number" class="linea-cantidad-det" value="${l.cantidad}" min="1" data-index="${i}">
         <input type="number" class="linea-precio-det" value="${l.precio_unitario}" min="0" step="0.01" data-index="${i}">
-        <div class="subtotal-linea">${moneda} ${Number(l.subtotal).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</div>
+        <div class="subtotal-linea" data-index="${i}">${moneda} ${Number(l.subtotal).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</div>
         <button type="button" class="btn-remove-prod-det" data-index="${i}">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
     `).join('');
 
-    container.querySelectorAll('.linea-cantidad-det').forEach(input => {
-      input.addEventListener('input', (e) => {
-        const idx = parseInt(e.target.dataset.index);
-        this.detalleLineas[idx].cantidad = parseInt(e.target.value) || 1;
-        this.detalleLineas[idx].subtotal = this.detalleLineas[idx].cantidad * this.detalleLineas[idx].precio_unitario;
-        this.renderDetalleLineas();
-      });
+    // Delegación: un solo listener de input — actualiza solo el subtotal de la fila
+    // sin reconstruir el DOM, para que el input no pierda el foco
+    container.addEventListener('input', (e) => {
+      const input = e.target;
+      if (!input.dataset.index) return;
+      const idx = parseInt(input.dataset.index);
+      if (input.classList.contains('linea-cantidad-det')) {
+        this.detalleLineas[idx].cantidad = parseInt(input.value) || 1;
+      } else if (input.classList.contains('linea-precio-det')) {
+        this.detalleLineas[idx].precio_unitario = parseFloat(input.value) || 0;
+      } else return;
+      this.detalleLineas[idx].subtotal = this.detalleLineas[idx].cantidad * this.detalleLineas[idx].precio_unitario;
+      const subtotalEl = container.querySelector(`.subtotal-linea[data-index="${idx}"]`);
+      if (subtotalEl) {
+        subtotalEl.textContent = `${moneda} ${Number(this.detalleLineas[idx].subtotal).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+      }
+      this.updateDetalleTotal();
     });
 
-    container.querySelectorAll('.linea-precio-det').forEach(input => {
-      input.addEventListener('input', (e) => {
-        const idx = parseInt(e.target.dataset.index);
-        this.detalleLineas[idx].precio_unitario = parseFloat(e.target.value) || 0;
-        this.detalleLineas[idx].subtotal = this.detalleLineas[idx].cantidad * this.detalleLineas[idx].precio_unitario;
-        this.renderDetalleLineas();
-      });
-    });
-
-    container.querySelectorAll('.btn-remove-prod-det').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(e.currentTarget.dataset.index);
-        this.detalleLineas.splice(idx, 1);
-        this.renderDetalleLineas();
-      });
+    // Click en eliminar línea: sí reconstruye (acción discreta, no hay input activo)
+    container.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-remove-prod-det');
+      if (!btn) return;
+      const idx = parseInt(btn.dataset.index);
+      this.detalleLineas.splice(idx, 1);
+      this.renderDetalleLineas();
     });
 
     this.updateDetalleTotal();
@@ -1542,7 +1587,7 @@ const PedidosPage = {
     if (search) {
       const s = search.toLowerCase();
       filtered = filtered.filter(p =>
-        p.nombre.toLowerCase().includes(s) || p.sku.toLowerCase().includes(s)
+        p.nombre.toLowerCase().includes(s) || (p.sku || '').toLowerCase().includes(s)
       );
     }
 
@@ -1640,9 +1685,10 @@ const PedidosPage = {
       if (errInsert) throw errInsert;
 
       // 3. Ajustar saldo_pendiente del cliente por la diferencia de totales
+      // Solo si el pedido no estaba cancelado (los cancelados ya tienen saldo descontado)
       const totalAnterior = Number(pedido.total || 0);
       const diff = nuevoTotal - totalAnterior;
-      if (pedido.cliente_id && diff !== 0) {
+      if (pedido.cliente_id && diff !== 0 && pedido.estado !== 'cancelado') {
         const { data: cd } = await supabase
           .from('clientes').select('saldo_pendiente').eq('id', pedido.cliente_id).single();
         const nuevoSaldo = Math.max(0, Number(cd?.saldo_pendiente || 0) + diff);
@@ -1834,6 +1880,15 @@ const PedidosPage = {
         await supabase.from('productos_pedido').delete().eq('pedido_id', id);
         const { error } = await supabase.from('pedidos').delete().eq('id', id);
         if (error) throw error;
+
+        // Si el pedido no estaba cancelado, descontar su total del saldo_pendiente del cliente
+        if (pedido.cliente_id && Number(pedido.total) > 0 && pedido.estado !== 'cancelado') {
+          const { data: cd } = await supabase
+            .from('clientes').select('saldo_pendiente').eq('id', pedido.cliente_id).single();
+          const nuevoSaldo = Math.max(0, Number(cd?.saldo_pendiente || 0) - Number(pedido.total));
+          await supabase.from('clientes').update({ saldo_pendiente: nuevoSaldo }).eq('id', pedido.cliente_id);
+        }
+
         Toast.success('Pedido eliminado');
         this.closeModal();
         this.loadPedidos();
@@ -1903,6 +1958,17 @@ const PedidosPage = {
 
       const { error: errLineas } = await supabase.from('productos_pedido').insert(lineasNuevas);
       if (errLineas) throw errLineas;
+
+      // Actualizar saldo_pendiente del cliente (leer fresh para evitar race condition)
+      const clienteIdDup = pedidoOriginal.cliente_id || pedidoOriginal.cliente?.id;
+      const totalDup = lineas.reduce((s, l) => s + Number(l.subtotal), 0);
+      if (clienteIdDup && totalDup > 0) {
+        const { data: cd } = await supabase
+          .from('clientes').select('saldo_pendiente').eq('id', clienteIdDup).single();
+        await supabase.from('clientes')
+          .update({ saldo_pendiente: Number(cd?.saldo_pendiente || 0) + totalDup })
+          .eq('id', clienteIdDup);
+      }
 
       Toast.success(`Pedido #${numeroPedido} creado (duplicado de #${pedidoOriginal.numero_pedido})`);
       this.closeModal();
@@ -2034,7 +2100,7 @@ const PedidosPage = {
       const userId = (await supabase.auth.getUser())?.data?.user?.id;
       const clienteId = pedido.cliente_id || pedido.cliente?.id;
 
-      // 1. Crear devolución
+      // 1. Crear devolución (pendiente de aprobación por un manager)
       const { data: devData, error: errDev } = await supabase
         .from('devoluciones')
         .insert({
@@ -2044,7 +2110,7 @@ const PedidosPage = {
           usuario_id: userId,
           motivo: motivo || null,
           monto_total: montoTotal,
-          estado: 'aprobada',
+          estado: 'pendiente',
         })
         .select('id')
         .single();
@@ -2056,25 +2122,12 @@ const PedidosPage = {
       const { error: errLineas } = await supabase.from('devoluciones_lineas').insert(lineasConDev);
       if (errLineas) throw errLineas;
 
-      // 3. Reducir saldo_pendiente del cliente (nota de crédito)
-      const { data: clienteData } = await supabase
-        .from('clientes')
-        .select('saldo_pendiente')
-        .eq('id', clienteId)
-        .single();
-
-      const saldoActual = Number(clienteData?.saldo_pendiente || 0);
-      const nuevoSaldo = Math.max(0, saldoActual - montoTotal);
-      await supabase.from('clientes').update({ saldo_pendiente: nuevoSaldo }).eq('id', clienteId);
-
-      // 4. Cambiar pedido a estado con_incidencia si no está ya
-      if (pedido.estado === 'entregado') {
-        await supabase.from('pedidos').update({ estado: 'con_incidencia' }).eq('id', pedido.id);
-        pedido.estado = 'con_incidencia';
-      }
+      // Nota: saldo_pendiente y estado del pedido se ajustan cuando un manager aprueba la devolución
 
       const moneda = window.App?.organization?.moneda || 'ARS';
-      Toast.success(`Devolución registrada: NCR ${moneda} ${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`);
+      Toast.success(`Devolución enviada a revisión — NCR ${moneda} ${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`);
+      Notif.notifyManagers('warning', `Devolución pendiente — Pedido #${pedido.numero_pedido}`,
+        `${pedido.cliente?.nombre_establecimiento || ''} · NCR ${moneda} ${montoTotal.toLocaleString('es-AR')}`, '#/pedidos');
       this.closeModal();
       this.loadPedidos();
     } catch (err) {
@@ -2092,7 +2145,7 @@ const PedidosPage = {
     container.id = 'devolucionesModal';
     container.className = 'modal-overlay';
     container.innerHTML = `
-      <div class="modal" style="max-width:780px;">
+      <div class="modal" style="max-width:900px;">
         <div class="modal-header">
           <h2>Devoluciones registradas</h2>
           <button class="modal-close" id="btnCloseDevModal">
@@ -2111,71 +2164,153 @@ const PedidosPage = {
     document.getElementById('btnCloseDevModal').addEventListener('click', () => container.remove());
     container.addEventListener('click', (e) => { if (e.target === container) container.remove(); });
 
-    try {
-      const { data, error } = await supabase
-        .from('devoluciones')
-        .select(`
-          id, motivo, estado, created_at,
-          pedido:pedido_id(numero_pedido, cliente:cliente_id(nombre_establecimiento)),
-          lineas:devoluciones_lineas(cantidad, motivo_linea, producto:producto_id(nombre))
-        `)
-        .order('created_at', { ascending: false })
-        .limit(100);
+    const esManager = ['owner', 'admin', 'gerente'].includes(window.App?.userProfile?.rol);
+    const estadoClass = { pendiente: 'warning', aprobada: 'success', rechazada: 'danger' };
+    const estadoLabel = { pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada' };
 
+    const cargarDevoluciones = async () => {
       const listEl = document.getElementById('devolucionesList');
       if (!listEl) return;
+      listEl.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
-      if (error) throw error;
-      const devs = data || [];
+      try {
+        const { data, error } = await supabase
+          .from('devoluciones')
+          .select(`
+            id, motivo, estado, monto_total, created_at,
+            pedido:pedido_id(id, numero_pedido, estado, cliente:cliente_id(id, nombre_establecimiento)),
+            lineas:devoluciones_lineas(cantidad, motivo_linea, producto:producto_id(nombre))
+          `)
+          .order('created_at', { ascending: false })
+          .limit(100);
 
-      if (devs.length === 0) {
-        listEl.innerHTML = '<div class="text-center text-muted" style="padding:2rem;">No hay devoluciones registradas</div>';
+        if (error) throw error;
+        const devs = data || [];
+
+        if (devs.length === 0) {
+          listEl.innerHTML = '<div class="text-center text-muted" style="padding:2rem;">No hay devoluciones registradas</div>';
+          return;
+        }
+
+        const thAcciones = esManager
+          ? `<th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Acciones</th>`
+          : '';
+
+        listEl.innerHTML = `
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:var(--gray-50);border-bottom:2px solid var(--gray-200);">
+                <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Fecha</th>
+                <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Pedido</th>
+                <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Cliente</th>
+                <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Productos</th>
+                <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Motivo</th>
+                <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Estado</th>
+                ${thAcciones}
+              </tr>
+            </thead>
+            <tbody>
+              ${devs.map(d => {
+                const fecha = new Date(d.created_at).toLocaleDateString('es-AR');
+                const nroPedido = d.pedido?.numero_pedido ? `#${d.pedido.numero_pedido}` : '-';
+                const cliente = d.pedido?.cliente?.nombre_establecimiento || '-';
+                const productos = (d.lineas || []).map(l => `${l.producto?.nombre || '?'} (×${l.cantidad})`).join(', ') || '-';
+                const color = estadoClass[d.estado] || 'info';
+                const tdAcciones = esManager ? `
+                  <td style="padding:0.65rem 1rem;white-space:nowrap;">
+                    ${d.estado === 'pendiente' ? `
+                      <button class="btn btn-sm btn-primary btn-aprobar-dev"
+                        data-id="${d.id}"
+                        data-pedido-id="${d.pedido?.id || ''}"
+                        data-cliente-id="${d.pedido?.cliente?.id || ''}"
+                        data-monto="${d.monto_total || 0}"
+                        data-pedido-estado="${d.pedido?.estado || ''}">
+                        Aprobar
+                      </button>
+                      <button class="btn btn-sm btn-danger btn-rechazar-dev" data-id="${d.id}" style="margin-left:4px;">Rechazar</button>
+                    ` : '—'}
+                  </td>` : '';
+                return `
+                  <tr style="border-bottom:1px solid var(--gray-100);">
+                    <td style="padding:0.65rem 1rem;font-size:var(--font-size-sm);white-space:nowrap;">${fecha}</td>
+                    <td style="padding:0.65rem 1rem;font-size:var(--font-size-sm);font-weight:600;">${nroPedido}</td>
+                    <td style="padding:0.65rem 1rem;font-size:var(--font-size-sm);">${this.esc(cliente)}</td>
+                    <td style="padding:0.65rem 1rem;font-size:var(--font-size-sm);max-width:220px;">${this.esc(productos)}</td>
+                    <td style="padding:0.65rem 1rem;font-size:var(--font-size-sm);max-width:160px;">${this.esc(d.motivo || '-')}</td>
+                    <td style="padding:0.65rem 1rem;">
+                      <span class="badge-estado-pedido ${color}" style="display:inline-flex;align-items:center;gap:4px;">
+                        <span class="dot"></span>${estadoLabel[d.estado] || d.estado}
+                      </span>
+                    </td>
+                    ${tdAcciones}
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (err) {
+        console.error('Error cargando devoluciones:', err);
+        const listEl = document.getElementById('devolucionesList');
+        if (listEl) listEl.innerHTML = '<div class="text-center text-muted" style="padding:2rem;">Error al cargar devoluciones</div>';
+      }
+    };
+
+    // Delegación de eventos para aprobar/rechazar
+    container.addEventListener('click', async (e) => {
+      const btnAprobar = e.target.closest('.btn-aprobar-dev');
+      if (btnAprobar) {
+        btnAprobar.disabled = true;
+        btnAprobar.textContent = '...';
+        const { id, pedidoId, clienteId, monto, pedidoEstado } = btnAprobar.dataset;
+        await this._aprobarDevolucion(id, pedidoId, clienteId, parseFloat(monto), pedidoEstado);
+        await cargarDevoluciones();
         return;
       }
+      const btnRechazar = e.target.closest('.btn-rechazar-dev');
+      if (btnRechazar) {
+        btnRechazar.disabled = true;
+        btnRechazar.textContent = '...';
+        await this._rechazarDevolucion(btnRechazar.dataset.id);
+        await cargarDevoluciones();
+        return;
+      }
+    });
 
-      const estadoClass = { pendiente: 'warning', aprobada: 'success', rechazada: 'danger' };
-      const estadoLabel = { pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada' };
+    await cargarDevoluciones();
+  },
 
-      listEl.innerHTML = `
-        <table style="width:100%;border-collapse:collapse;">
-          <thead>
-            <tr style="background:var(--gray-50);border-bottom:2px solid var(--gray-200);">
-              <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Fecha</th>
-              <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Pedido</th>
-              <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Cliente</th>
-              <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Productos</th>
-              <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Motivo</th>
-              <th style="padding:0.6rem 1rem;text-align:left;font-size:var(--font-size-xs);font-weight:600;color:var(--gray-600);text-transform:uppercase;">Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${devs.map(d => {
-              const fecha = new Date(d.created_at).toLocaleDateString('es-AR');
-              const nroPedido = d.pedido?.numero_pedido ? `#${d.pedido.numero_pedido}` : '-';
-              const cliente = d.pedido?.cliente?.nombre_establecimiento || '-';
-              const productos = (d.lineas || []).map(l => `${l.producto?.nombre || '?'} (×${l.cantidad})`).join(', ') || '-';
-              const color = estadoClass[d.estado] || 'info';
-              return `
-                <tr style="border-bottom:1px solid var(--gray-100);">
-                  <td style="padding:0.65rem 1rem;font-size:var(--font-size-sm);white-space:nowrap;">${fecha}</td>
-                  <td style="padding:0.65rem 1rem;font-size:var(--font-size-sm);font-weight:600;">${nroPedido}</td>
-                  <td style="padding:0.65rem 1rem;font-size:var(--font-size-sm);">${this.esc(cliente)}</td>
-                  <td style="padding:0.65rem 1rem;font-size:var(--font-size-sm);max-width:220px;">${this.esc(productos)}</td>
-                  <td style="padding:0.65rem 1rem;font-size:var(--font-size-sm);max-width:160px;">${this.esc(d.motivo || '-')}</td>
-                  <td style="padding:0.65rem 1rem;">
-                    <span class="badge-estado-pedido ${color}" style="display:inline-flex;align-items:center;gap:4px;">
-                      <span class="dot"></span>${estadoLabel[d.estado] || d.estado}
-                    </span>
-                  </td>
-                </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
+  async _aprobarDevolucion(devId, pedidoId, clienteId, monto, pedidoEstado) {
+    try {
+      const { error } = await supabase.from('devoluciones').update({ estado: 'aprobada' }).eq('id', devId);
+      if (error) throw error;
+
+      // Reducir saldo_pendiente del cliente (nota de crédito)
+      if (clienteId && monto > 0) {
+        const { data: cd } = await supabase.from('clientes').select('saldo_pendiente').eq('id', clienteId).single();
+        const nuevoSaldo = Math.max(0, Number(cd?.saldo_pendiente || 0) - monto);
+        await supabase.from('clientes').update({ saldo_pendiente: nuevoSaldo }).eq('id', clienteId);
+      }
+
+      // Cambiar pedido a con_incidencia si estaba entregado
+      if (pedidoId && pedidoEstado === 'entregado') {
+        await supabase.from('pedidos').update({ estado: 'con_incidencia' }).eq('id', pedidoId);
+      }
+
+      Toast.success('Devolución aprobada');
     } catch (err) {
-      console.error('Error cargando devoluciones:', err);
-      const listEl = document.getElementById('devolucionesList');
-      if (listEl) listEl.innerHTML = '<div class="text-center text-muted" style="padding:2rem;">Error al cargar devoluciones</div>';
+      console.error('Error aprobando devolución:', err);
+      Toast.error('Error al aprobar la devolución');
+    }
+  },
+
+  async _rechazarDevolucion(devId) {
+    try {
+      const { error } = await supabase.from('devoluciones').update({ estado: 'rechazada' }).eq('id', devId);
+      if (error) throw error;
+      Toast.success('Devolución rechazada');
+    } catch (err) {
+      console.error('Error rechazando devolución:', err);
+      Toast.error('Error al rechazar la devolución');
     }
   },
 

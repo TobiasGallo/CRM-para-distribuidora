@@ -5,6 +5,7 @@
 
 import supabase from '../config/supabase.js';
 import Toast from '../utils/toast.js';
+import Notif from '../utils/notif.js';
 
 const ETAPAS = [
   { key: 'contacto_inicial', label: 'Contacto Inicial', prob: 10 },
@@ -78,9 +79,11 @@ const PipelinePage = {
 
   async loadOportunidades() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data, error } = await supabase
         .from('pipeline_oportunidades')
         .select('*, cliente:cliente_id(id, nombre_establecimiento), vendedor:vendedor_id(id, nombre)')
+        .eq('organizacion_id', orgId)
         .order('fecha_entrada_etapa', { ascending: true });
 
       if (error) throw error;
@@ -364,6 +367,11 @@ const PipelinePage = {
         this.renderBoard();
         this.renderSummary();
         Toast.success(`Movido a: ${ETAPAS.find(e => e.key === nuevaEtapa)?.label}`);
+
+        // Sincronizar estado_lead del cliente cuando avanza a etapas de cierre
+        if (['primer_pedido', 'cliente_activo'].includes(nuevaEtapa) && op.cliente_id) {
+          await this._syncEstadoLead(op.cliente_id);
+        }
       } catch (err) {
         console.error('Error moviendo oportunidad:', err);
         Toast.error('Error al mover la oportunidad');
@@ -484,7 +492,8 @@ const PipelinePage = {
   },
 
   closeModal() {
-    document.getElementById('modalContainer').innerHTML = '';
+    const mc = document.getElementById('modalContainer');
+    if (mc) mc.innerHTML = '';
     if (this._escHandler) {
       document.removeEventListener('keydown', this._escHandler);
       this._escHandler = null;
@@ -543,6 +552,12 @@ const PipelinePage = {
           .eq('id', editingId);
         if (error) throw error;
         Toast.success('Oportunidad actualizada');
+
+        // Sincronizar estado_lead si la etapa cambió a una de cierre
+        if (opActual && opActual.etapa !== etapa &&
+            ['primer_pedido', 'cliente_activo'].includes(etapa) && data.cliente_id) {
+          await this._syncEstadoLead(data.cliente_id);
+        }
       } else {
         data.fecha_entrada_etapa = new Date().toISOString();
         const { error } = await supabase
@@ -550,6 +565,12 @@ const PipelinePage = {
           .insert(data);
         if (error) throw error;
         Toast.success('Oportunidad creada');
+        Notif.notifyManagers('info', 'Nueva oportunidad en pipeline', `Valor: ARS ${Number(data.valor_estimado || 0).toLocaleString('es-AR')}`, '#/pipeline');
+
+        // Sincronizar estado_lead si se crea directamente en etapa de cierre
+        if (['primer_pedido', 'cliente_activo'].includes(etapa) && data.cliente_id) {
+          await this._syncEstadoLead(data.cliente_id);
+        }
       }
 
       this.closeModal();
@@ -603,6 +624,22 @@ const PipelinePage = {
     document.getElementById('deleteModal').addEventListener('click', (e) => {
       if (e.target.id === 'deleteModal') this.closeModal();
     });
+  },
+
+  // ========================================
+  // HELPERS DE SINCRONIZACIÓN
+  // ========================================
+
+  async _syncEstadoLead(clienteId) {
+    try {
+      await supabase
+        .from('clientes')
+        .update({ estado_lead: 'activo' })
+        .eq('id', clienteId);
+    } catch (err) {
+      // No bloquear el flujo principal
+      console.error('Error sincronizando estado_lead:', err);
+    }
   },
 };
 

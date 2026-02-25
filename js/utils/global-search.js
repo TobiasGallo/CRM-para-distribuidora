@@ -71,6 +71,10 @@ const GlobalSearch = {
     input.focus();
 
     // Cerrar al click fuera
+    if (this._outsideHandler) {
+      document.removeEventListener('click', this._outsideHandler);
+      this._outsideHandler = null;
+    }
     setTimeout(() => {
       this._outsideHandler = (e) => {
         if (!wrapper.contains(e.target)) {
@@ -109,23 +113,27 @@ const GlobalSearch = {
     results.classList.add('open');
 
     const s = `%${query}%`;
+    const orgId = window.App?.organization?.id;
 
     try {
       const [clientes, productos, pedidos] = await Promise.all([
         supabase
           .from('clientes')
           .select('id, nombre_establecimiento, tipo_cliente, ciudad')
+          .eq('organizacion_id', orgId)
           .or(`nombre_establecimiento.ilike.${s},ciudad.ilike.${s},telefono.ilike.${s},email.ilike.${s}`)
           .limit(5),
         supabase
           .from('productos')
           .select('id, nombre, sku, categoria')
+          .eq('organizacion_id', orgId)
           .or(`nombre.ilike.${s},sku.ilike.${s},categoria.ilike.${s}`)
           .eq('activo', true)
           .limit(5),
         supabase
           .from('pedidos')
           .select('id, numero_pedido, total, estado, cliente:cliente_id(nombre_establecimiento)')
+          .eq('organizacion_id', orgId)
           .or(`numero_pedido::text.ilike.${s}`)
           .limit(5),
       ]);

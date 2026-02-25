@@ -118,7 +118,8 @@ const ReportesPage = {
 
   async tabVentas(el) {
     const desde = this.getDesde();
-    let query = supabase.from('pedidos').select('id, total, estado, created_at, metodo_pago');
+    const orgId = window.App?.organization?.id;
+    let query = supabase.from('pedidos').select('id, total, estado, created_at, metodo_pago').eq('organizacion_id', orgId);
     if (desde) query = query.gte('created_at', desde);
     const { data } = await query.order('created_at');
     const pedidos = data || [];
@@ -256,14 +257,16 @@ const ReportesPage = {
     const mesActual = ahora.getMonth() + 1;
     const anioActual = ahora.getFullYear();
 
+    const orgId = window.App?.organization?.id;
     // Cargar pedidos + metas del mes actual en paralelo
-    let queryPed = supabase.from('pedidos').select('total, estado, vendedor:vendedor_id(id, nombre)');
+    let queryPed = supabase.from('pedidos').select('total, estado, vendedor:vendedor_id(id, nombre)').eq('organizacion_id', orgId);
     if (desde) queryPed = queryPed.gte('created_at', desde);
 
     const [{ data: pedidosData }, { data: metasData }] = await Promise.all([
       queryPed,
       supabase.from('metas_vendedor')
         .select('vendedor_id, meta_monto, vendedor:vendedor_id(id, nombre)')
+        .eq('organizacion_id', orgId)
         .eq('mes', mesActual)
         .eq('anio', anioActual),
     ]);
@@ -511,10 +514,11 @@ const ReportesPage = {
 
   async tabProductos(el) {
     const desde = this.getDesde();
+    const orgId = window.App?.organization?.id;
 
     // Primero obtenemos los IDs de pedidos del período (excluye cancelados)
     // porque Supabase JS no soporta filtrar por columnas de relaciones embebidas
-    let pedidosQuery = supabase.from('pedidos').select('id').neq('estado', 'cancelado');
+    let pedidosQuery = supabase.from('pedidos').select('id').eq('organizacion_id', orgId).neq('estado', 'cancelado');
     if (desde) pedidosQuery = pedidosQuery.gte('created_at', desde);
     const { data: pedidosData } = await pedidosQuery;
     const pedidoIds = (pedidosData || []).map(p => p.id);
@@ -659,9 +663,11 @@ const ReportesPage = {
   // ========================================
 
   async tabMorosidad(el) {
+    const orgId = window.App?.organization?.id;
     const { data } = await supabase
       .from('clientes')
       .select('nombre_establecimiento, saldo_pendiente, dias_credito, fecha_ultima_compra, telefono, vendedor:vendedor_asignado_id(nombre)')
+      .eq('organizacion_id', orgId)
       .gt('saldo_pendiente', 0)
       .order('saldo_pendiente', { ascending: false });
 
@@ -760,9 +766,11 @@ const ReportesPage = {
   // ========================================
 
   async tabClientesInactivos(el) {
+    const orgId = window.App?.organization?.id;
     const { data } = await supabase
       .from('clientes')
       .select('nombre_establecimiento, tipo_cliente, estado_lead, fecha_ultima_compra, saldo_pendiente, scoring, vendedor:vendedor_asignado_id(nombre), telefono, ciudad')
+      .eq('organizacion_id', orgId)
       .order('fecha_ultima_compra', { ascending: true, nullsFirst: true });
 
     const clientes = data || [];
@@ -834,7 +842,8 @@ const ReportesPage = {
 
   async tabEntregas(el) {
     const desde = this.getDesde();
-    let queryRutas = supabase.from('rutas').select('id, nombre, estado, fecha, km_estimados, secuencia_paradas, repartidor:repartidor_id(nombre)');
+    const orgId = window.App?.organization?.id;
+    let queryRutas = supabase.from('rutas').select('id, nombre, estado, fecha, km_estimados, secuencia_paradas, repartidor:repartidor_id(nombre)').eq('organizacion_id', orgId);
     if (desde) queryRutas = queryRutas.gte('fecha', desde.split('T')[0]);
     const { data: rutas } = await queryRutas.order('fecha', { ascending: false });
 

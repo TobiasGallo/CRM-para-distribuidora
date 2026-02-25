@@ -28,9 +28,11 @@ const Notifications = {
    */
   async load() {
     try {
+      const userId = window.App?.userProfile?.id;
       const { data, error } = await supabase
         .from('notificaciones')
         .select('*')
+        .eq('usuario_id', userId)
         .order('created_at', { ascending: false })
         .limit(30);
 
@@ -87,6 +89,10 @@ const Notifications = {
     }
 
     // Cerrar al hacer click fuera
+    if (this._outsideClickHandler) {
+      document.removeEventListener('click', this._outsideClickHandler);
+      this._outsideClickHandler = null;
+    }
     setTimeout(() => {
       this._outsideClickHandler = (e) => {
         const panel = document.getElementById('notifPanel');

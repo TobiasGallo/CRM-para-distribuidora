@@ -2,6 +2,8 @@
    ROUTER SPA - Navegación sin recargar
    ======================================== */
 
+import Permissions from './permissions.js';
+
 const Router = {
   routes: {},
   currentRoute: null,
@@ -44,6 +46,22 @@ const Router = {
     const route = hash.split('?')[0]; // ignorar query params
 
     if (this.routes[route]) {
+      // Guard de permisos: verificar que el rol actual puede ver esta ruta
+      if (window.App?.userProfile && !Permissions.canSeeRoute(route)) {
+        this.contentElement.innerHTML = `
+          <div class="card">
+            <div class="card-body text-center">
+              <h2>Acceso denegado</h2>
+              <p class="text-muted">No tenés permiso para acceder a esta sección.</p>
+              <button class="btn btn-primary" onclick="window.location.hash='#/dashboard'">
+                Volver al inicio
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
       this.currentRoute = route;
 
       // Actualizar link activo en sidebar

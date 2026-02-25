@@ -9,6 +9,7 @@ import Permissions from '../utils/permissions.js';
 import CSV from '../utils/csv.js';
 import Validate from '../utils/validate.js';
 import ImportCSV from '../utils/import-csv.js';
+import Notif from '../utils/notif.js';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -163,9 +164,11 @@ const ClientesPage = {
   async loadClientes() {
     sessionStorage.setItem('crm_filters_clientes', JSON.stringify(this.filters));
     try {
+      const orgId = window.App?.organization?.id;
       let query = supabase
         .from('clientes')
-        .select('*, vendedor:vendedor_asignado_id(id, nombre), lista:lista_precios_id(id, nombre)', { count: 'exact' });
+        .select('*, vendedor:vendedor_asignado_id(id, nombre), lista:lista_precios_id(id, nombre)', { count: 'exact' })
+        .eq('organizacion_id', orgId);
 
       // Aplicar filtros
       if (this.filters.search) {
@@ -572,9 +575,11 @@ const ClientesPage = {
 
     // Importar CSV
     document.getElementById('btnImportClientes')?.addEventListener('click', () => ImportCSV.open('clientes'));
-    window.addEventListener('crm:import-done', (e) => {
+    if (this._importDoneHandler) window.removeEventListener('crm:import-done', this._importDoneHandler);
+    this._importDoneHandler = (e) => {
       if (e.detail?.tipo === 'clientes') { this.currentPage = 0; this.loadClientes(); }
-    }, { once: true });
+    };
+    window.addEventListener('crm:import-done', this._importDoneHandler);
 
     // Búsqueda con debounce
     let searchTimeout;
@@ -661,9 +666,11 @@ const ClientesPage = {
     try {
       Toast.success('Exportando clientes...');
       // Cargar TODOS los clientes (sin paginación) con los filtros actuales
+      const orgId = window.App?.organization?.id;
       let query = supabase
         .from('clientes')
-        .select('*, vendedor:vendedor_asignado_id(nombre), lista:lista_precios_id(nombre)');
+        .select('*, vendedor:vendedor_asignado_id(nombre), lista:lista_precios_id(nombre)')
+        .eq('organizacion_id', orgId);
 
       if (this.filters.search) {
         const s = `%${this.filters.search}%`;
@@ -671,6 +678,12 @@ const ClientesPage = {
       }
       if (this.filters.tipo) query = query.eq('tipo_cliente', this.filters.tipo);
       if (this.filters.estado) query = query.eq('estado_lead', this.filters.estado);
+      // Filtros avanzados (también aplicados en la lista)
+      if (this.filters.fechaDesde) query = query.gte('fecha_ultima_compra', this.filters.fechaDesde);
+      if (this.filters.fechaHasta) query = query.lte('fecha_ultima_compra', this.filters.fechaHasta);
+      if (this.filters.scoringMin) query = query.gte('scoring', parseInt(this.filters.scoringMin));
+      if (this.filters.scoringMax) query = query.lte('scoring', parseInt(this.filters.scoringMax));
+      if (this.filters.vendedor) query = query.eq('vendedor_asignado_id', this.filters.vendedor);
 
       const { data, error } = await query.order('nombre_establecimiento');
       if (error) throw error;
@@ -946,7 +959,8 @@ const ClientesPage = {
   },
 
   closeModal() {
-    document.getElementById('modalContainer').innerHTML = '';
+    const mc = document.getElementById('modalContainer');
+    if (mc) mc.innerHTML = '';
     if (this._escHandler) {
       document.removeEventListener('keydown', this._escHandler);
       this._escHandler = null;
@@ -1036,6 +1050,7 @@ const ClientesPage = {
           .insert(data);
         if (error) throw error;
         Toast.success('Cliente creado');
+        Notif.notifyManagers('success', 'Nuevo cliente', data.nombre_establecimiento, '#/clientes');
       }
 
       this.closeModal();
@@ -1263,7 +1278,7 @@ const ClientesPage = {
               <div class="cobros-list" id="cobrosList">
                 <div class="text-center text-muted" style="padding:1rem">Cargando cobros...</div>
               </div>
-              ${Permissions.can('crear', 'clientes') ? `
+              ${Permissions.can('crear', 'cobros') ? `
               <button class="btn btn-primary" id="btnNuevoCobro" style="width:100%">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 Registrar pago
@@ -1330,6 +1345,9 @@ const ClientesPage = {
       if (e.target.id === 'fichaModal') this.closeModal();
     });
 
+    if (this._escHandler) {
+      document.removeEventListener('keydown', this._escHandler);
+    }
     this._escHandler = (e) => { if (e.key === 'Escape') this.closeModal(); };
     document.addEventListener('keydown', this._escHandler);
 
@@ -1519,10 +1537,11 @@ const ClientesPage = {
 
     if (insertErr) { Toast.error('Error al registrar el cobro'); return; }
 
-    // Actualizar saldo_pendiente del cliente
-    const clienteActual = this.clientes.find(c => c.id === clienteId);
-    const nuevoSaldo = Math.max(0, Number(clienteActual?.saldo_pendiente || 0) - data.monto);
+    // Actualizar saldo_pendiente del cliente (leer fresh de DB para evitar race condition)
+    const { data: clienteDB } = await supabase.from('clientes').select('saldo_pendiente').eq('id', clienteId).single();
+    const nuevoSaldo = Math.max(0, Number(clienteDB?.saldo_pendiente || 0) - data.monto);
     await supabase.from('clientes').update({ saldo_pendiente: nuevoSaldo }).eq('id', clienteId);
+    const clienteActual = this.clientes.find(c => c.id === clienteId);
 
     Toast.success(`Pago de ${data.monto.toLocaleString('es-AR')} registrado`);
 

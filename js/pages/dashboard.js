@@ -289,13 +289,14 @@ const DashboardPage = {
   async loadKPIs() {
     try {
       const moneda = window.App?.organization?.moneda || 'ARS';
+      const orgId = window.App?.organization?.id;
       const desde = this.getDesde();
 
       const [pedidosPeriodo, totalClientes, morosos, pedidosPendientes] = await Promise.all([
-        supabase.from('pedidos').select('id, total, estado').gte('created_at', desde),
-        supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('estado_lead', 'activo'),
-        supabase.from('clientes').select('saldo_pendiente').gt('saldo_pendiente', 0),
-        supabase.from('pedidos').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente'),
+        supabase.from('pedidos').select('id, total, estado').gte('created_at', desde).eq('organizacion_id', orgId),
+        supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('estado_lead', 'activo').eq('organizacion_id', orgId),
+        supabase.from('clientes').select('saldo_pendiente').gt('saldo_pendiente', 0).eq('organizacion_id', orgId),
+        supabase.from('pedidos').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente').eq('organizacion_id', orgId),
       ]);
 
       const pedidos = pedidosPeriodo.data || [];
@@ -329,11 +330,13 @@ const DashboardPage = {
   async loadChartVentas() {
     if (!window.Chart) return;
     try {
+      const orgId = window.App?.organization?.id;
       const desde = this.getDesde();
       const { data } = await supabase
         .from('pedidos')
         .select('created_at, total')
         .gte('created_at', desde)
+        .eq('organizacion_id', orgId)
         .order('created_at');
 
       const pedidos = data || [];
@@ -395,7 +398,10 @@ const DashboardPage = {
   async loadChartEstados() {
     if (!window.Chart) return;
     try {
-      const { data } = await supabase.from('pedidos').select('estado');
+      const orgId = window.App?.organization?.id;
+      const desde = this.getDesde();
+      const query = supabase.from('pedidos').select('estado').eq('organizacion_id', orgId);
+      const { data } = desde ? await query.gte('created_at', desde) : await query;
       const pedidos = data || [];
 
       const conteo = {};
@@ -459,11 +465,13 @@ const DashboardPage = {
   async loadChartVendedores() {
     if (!window.Chart) return;
     try {
+      const orgId = window.App?.organization?.id;
       const desde = this.getDesde();
       const { data } = await supabase
         .from('pedidos')
         .select('total, vendedor:vendedor_id(nombre)')
-        .gte('created_at', desde);
+        .gte('created_at', desde)
+        .eq('organizacion_id', orgId);
 
       const pedidos = data || [];
       const porVendedor = {};
@@ -525,7 +533,8 @@ const DashboardPage = {
   async loadChartPipeline() {
     if (!window.Chart) return;
     try {
-      const { data } = await supabase.from('pipeline_oportunidades').select('etapa');
+      const orgId = window.App?.organization?.id;
+      const { data } = await supabase.from('pipeline_oportunidades').select('etapa').eq('organizacion_id', orgId);
       const ops = data || [];
 
       const etapas = [
@@ -581,12 +590,14 @@ const DashboardPage = {
   async loadTopClientes() {
     try {
       const moneda = window.App?.organization?.moneda || 'ARS';
+      const orgId = window.App?.organization?.id;
       const desde = this.getDesde();
 
       const { data } = await supabase
         .from('pedidos')
         .select('total, cliente:cliente_id(nombre_establecimiento)')
-        .gte('created_at', desde);
+        .gte('created_at', desde)
+        .eq('organizacion_id', orgId);
 
       const pedidos = data || [];
       const porCliente = {};
@@ -679,10 +690,12 @@ const DashboardPage = {
 
   async loadStockBajo() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('productos')
         .select('id, nombre, sku, categoria, stock_actual, stock_minimo, unidad_medida')
         .eq('activo', true)
+        .eq('organizacion_id', orgId)
         .or('stock_actual.eq.0,and(stock_minimo.gt.0,stock_actual.lte.stock_minimo)')
         .order('stock_actual', { ascending: true })
         .limit(20);
@@ -753,13 +766,15 @@ const DashboardPage = {
 
   async loadAlertas() {
     try {
+      const orgId = window.App?.organization?.id;
       const alertas = [];
 
       // 1. Stock bajo
       const { data: stockBajo } = await supabase
         .from('productos')
         .select('nombre, stock_actual, stock_minimo')
-        .eq('activo', true);
+        .eq('activo', true)
+        .eq('organizacion_id', orgId);
 
       (stockBajo || []).forEach(p => {
         if (p.stock_minimo > 0 && p.stock_actual <= p.stock_minimo) {
@@ -779,6 +794,7 @@ const DashboardPage = {
         .from('productos')
         .select('nombre, fecha_vencimiento')
         .eq('activo', true)
+        .eq('organizacion_id', orgId)
         .not('fecha_vencimiento', 'is', null)
         .lte('fecha_vencimiento', en15.toISOString().split('T')[0]);
 
@@ -797,6 +813,7 @@ const DashboardPage = {
         .from('clientes')
         .select('nombre_establecimiento, saldo_pendiente')
         .gt('saldo_pendiente', 0)
+        .eq('organizacion_id', orgId)
         .order('saldo_pendiente', { ascending: false })
         .limit(5);
 
@@ -816,6 +833,7 @@ const DashboardPage = {
         .from('pedidos')
         .select('numero_pedido, created_at')
         .eq('estado', 'pendiente')
+        .eq('organizacion_id', orgId)
         .lte('created_at', hace3.toISOString());
 
       (pedidosViejos || []).forEach(p => {
@@ -853,6 +871,7 @@ const DashboardPage = {
   async loadCierreCaja() {
     try {
       const moneda = window.App?.organization?.moneda || 'ARS';
+      const orgId = window.App?.organization?.id;
       const hoy = new Date();
       const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString();
       const finHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1).toISOString();
@@ -860,6 +879,7 @@ const DashboardPage = {
       const { data } = await supabase
         .from('cobros')
         .select('monto, metodo_pago')
+        .eq('organizacion_id', orgId)
         .gte('created_at', inicioHoy)
         .lt('created_at', finHoy);
 

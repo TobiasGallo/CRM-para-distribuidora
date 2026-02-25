@@ -312,9 +312,11 @@ const ConfiguracionPage = {
 
   async renderUsuariosTab(content) {
     try {
+      const orgId = window.App?.organization?.id;
       const { data, error } = await supabase
         .from('usuarios')
         .select('*')
+        .eq('organizacion_id', orgId)
         .order('created_at', { ascending: true });
       if (error) throw error;
       this.usuarios = data || [];
@@ -344,7 +346,7 @@ const ConfiguracionPage = {
         <div class="usuarios-list">
           ${this.usuarios.map(u => `
             <div class="usuario-card ${!u.activo ? 'inactivo' : ''}">
-              <div class="usuario-avatar">${u.nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}</div>
+              <div class="usuario-avatar">${(u.nombre || '?').split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || '?'}</div>
               <div class="usuario-info">
                 <div class="usuario-nombre">
                   ${this.esc(u.nombre)}
@@ -627,10 +629,12 @@ const ConfiguracionPage = {
   // ========================================
 
   async renderListasTab(content) {
+    const orgId = window.App?.organization?.id;
     try {
       const { data, error } = await supabase
         .from('listas_precios')
         .select('*')
+        .eq('organizacion_id', orgId)
         .order('created_at', { ascending: true });
       if (error) throw error;
       this.listasPrecios = data || [];
@@ -642,13 +646,17 @@ const ConfiguracionPage = {
     // Contar productos por lista
     let conteos = {};
     try {
-      const { data } = await supabase
-        .from('precios_por_lista')
-        .select('lista_precios_id');
-      if (data) {
-        data.forEach(p => {
-          conteos[p.lista_precios_id] = (conteos[p.lista_precios_id] || 0) + 1;
-        });
+      const listaIds = this.listasPrecios.map(l => l.id);
+      if (listaIds.length > 0) {
+        const { data } = await supabase
+          .from('precios_por_lista')
+          .select('lista_precios_id')
+          .in('lista_precios_id', listaIds);
+        if (data) {
+          data.forEach(p => {
+            conteos[p.lista_precios_id] = (conteos[p.lista_precios_id] || 0) + 1;
+          });
+        }
       }
     } catch (err) { /* ignore */ }
 
@@ -658,6 +666,7 @@ const ConfiguracionPage = {
       const { data } = await supabase
         .from('clientes')
         .select('lista_precios_id')
+        .eq('organizacion_id', orgId)
         .not('lista_precios_id', 'is', null);
       if (data) {
         data.forEach(c => {
@@ -936,7 +945,8 @@ const ConfiguracionPage = {
   // ========================================
 
   closeModal() {
-    document.getElementById('modalContainer').innerHTML = '';
+    const mc = document.getElementById('modalContainer');
+    if (mc) mc.innerHTML = '';
   },
 
   esc(text) {
@@ -947,98 +957,11 @@ const ConfiguracionPage = {
   },
 
   // ========================================
-  // EXPORTAR TODOS LOS DATOS
-  // ========================================
-
-  async exportarDatos() {
-    const btn = document.getElementById('btnExportarDatos');
-    if (btn) { btn.disabled = true; btn.textContent = 'Exportando...'; }
-
-    const tablas = [
-      {
-        nombre: 'clientes',
-        query: () => supabase.from('clientes').select('id,nombre_establecimiento,razon_social,tipo_cliente,estado_lead,ciudad,provincia,telefono,email,direccion_completa,cuit,scoring,linea_credito,saldo_pendiente,dias_credito,notas_internas,created_at').order('created_at'),
-        cols: ['id','nombre_establecimiento','razon_social','tipo_cliente','estado_lead','ciudad','provincia','telefono','email','direccion_completa','cuit','scoring','linea_credito','saldo_pendiente','dias_credito','notas_internas','created_at'],
-      },
-      {
-        nombre: 'productos',
-        query: () => supabase.from('productos').select('id,sku,nombre,categoria,precio_base,stock_actual,stock_minimo,unidad_medida,proveedor,activo,descripcion,fecha_vencimiento,created_at').order('nombre'),
-        cols: ['id','sku','nombre','categoria','precio_base','stock_actual','stock_minimo','unidad_medida','proveedor','activo','descripcion','fecha_vencimiento','created_at'],
-      },
-      {
-        nombre: 'pedidos',
-        query: () => supabase.from('pedidos').select('id,numero_pedido,cliente_id,vendedor_id,repartidor_id,estado,total,metodo_pago,observaciones,fecha_entrega_programada,fecha_entrega_real,created_at').order('created_at'),
-        cols: ['id','numero_pedido','cliente_id','vendedor_id','repartidor_id','estado','total','metodo_pago','observaciones','fecha_entrega_programada','fecha_entrega_real','created_at'],
-      },
-      {
-        nombre: 'cobros',
-        query: () => supabase.from('cobros').select('id,cliente_id,usuario_id,monto,metodo,referencia,notas,created_at').order('created_at'),
-        cols: ['id','cliente_id','usuario_id','monto','metodo','referencia','notas','created_at'],
-      },
-      {
-        nombre: 'interacciones',
-        query: () => supabase.from('interacciones').select('id,cliente_id,usuario_id,tipo,contenido,resultado,duracion,created_at').order('created_at'),
-        cols: ['id','cliente_id','usuario_id','tipo','contenido','resultado','duracion','created_at'],
-      },
-      {
-        nombre: 'devoluciones',
-        query: () => supabase.from('devoluciones').select('id,pedido_id,cliente_id,usuario_id,motivo,monto_total,estado,created_at').order('created_at'),
-        cols: ['id','pedido_id','cliente_id','usuario_id','motivo','monto_total','estado','created_at'],
-      },
-    ];
-
-    let errores = 0;
-
-    for (const t of tablas) {
-      try {
-        const { data, error } = await t.query();
-        if (error) throw error;
-
-        const rows = data || [];
-        const csvRows = [
-          t.cols.join(','),
-          ...rows.map(r =>
-            t.cols.map(col => {
-              const val = r[col];
-              if (val === null || val === undefined) return '';
-              const str = String(val);
-              return str.includes(',') || str.includes('"') || str.includes('\n')
-                ? `"${str.replace(/"/g, '""')}"` : str;
-            }).join(',')
-          ),
-        ];
-
-        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${t.nombre}_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        // Pequeña pausa entre descargas para no saturar el browser
-        await new Promise(r => setTimeout(r, 300));
-      } catch (err) {
-        console.error(`Error exportando ${t.nombre}:`, err);
-        errores++;
-      }
-    }
-
-    if (btn) { btn.disabled = false; btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Exportar todos los datos (ZIP)`; }
-
-    if (errores === 0) {
-      Toast.success(`Exportación completa: ${tablas.length} archivos CSV descargados`);
-    } else {
-      Toast.error(`Exportación con errores: ${errores} tabla(s) fallaron`);
-    }
-  },
-
-  // ========================================
   // TAB: MI PERFIL
   // ========================================
 
   async renderPerfilTab(content) {
-    const user = window.App?.user || {};
+    const user = window.App?.userProfile || {};
 
     content.innerHTML = `
       <div class="config-section">
@@ -1180,11 +1103,11 @@ const ConfiguracionPage = {
         { data: cobros },
         { data: usuarios },
       ] = await Promise.all([
-        supabase.from('clientes').select('*').order('nombre_establecimiento'),
-        supabase.from('productos').select('*').order('nombre'),
-        supabase.from('pedidos').select('*, cliente:cliente_id(nombre_establecimiento), vendedor:vendedor_id(nombre)').order('created_at', { ascending: false }),
-        supabase.from('cobros').select('*, cliente:cliente_id(nombre_establecimiento)').order('created_at', { ascending: false }),
-        supabase.from('usuarios').select('id, nombre, email, rol, activo, created_at'),
+        supabase.from('clientes').select('*').eq('organizacion_id', orgId).order('nombre_establecimiento'),
+        supabase.from('productos').select('*').eq('organizacion_id', orgId).order('nombre'),
+        supabase.from('pedidos').select('*, cliente:cliente_id(nombre_establecimiento), vendedor:vendedor_id(nombre)').eq('organizacion_id', orgId).order('created_at', { ascending: false }),
+        supabase.from('cobros').select('*, cliente:cliente_id(nombre_establecimiento)').eq('organizacion_id', orgId).order('created_at', { ascending: false }),
+        supabase.from('usuarios').select('id, nombre, email, rol, activo, created_at').eq('organizacion_id', orgId),
       ]);
 
       const toCSV = (rows, cols) => {

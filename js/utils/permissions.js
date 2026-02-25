@@ -52,6 +52,10 @@ const PERMISSIONS = {
     editar: ['owner', 'admin', 'gerente', 'repartidor'],
     eliminar: ['owner', 'admin', 'gerente'],
   },
+  cobros: {
+    ver: ['owner', 'admin', 'gerente', 'administrativo'],
+    crear: ['owner', 'admin', 'gerente', 'vendedor', 'administrativo'],
+  },
   reportes: {
     ver: ['owner', 'admin', 'gerente'],
     ver_morosidad: ['owner', 'admin', 'gerente', 'administrativo'],

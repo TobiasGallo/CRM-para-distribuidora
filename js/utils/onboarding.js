@@ -40,14 +40,18 @@ const Onboarding = {
       const orgId = window.App?.userProfile?.organizacion_id;
       if (!orgId) return false;
 
+      // Solo mostrar a owner/admin: otros roles no pueden configurar la org ni invitar usuarios
+      const rol = window.App?.userProfile?.rol;
+      if (!['owner', 'admin'].includes(rol)) return false;
+
       // Verificar si ya vio el onboarding (guardado en localStorage)
       const key = `onboarding_done_${orgId}`;
       if (localStorage.getItem(key)) return false;
 
       // Verificar si tiene datos
       const [{ count: clientesCount }, { count: productosCount }] = await Promise.all([
-        supabase.from('clientes').select('id', { count: 'exact', head: true }),
-        supabase.from('productos').select('id', { count: 'exact', head: true }),
+        supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('organizacion_id', orgId),
+        supabase.from('productos').select('id', { count: 'exact', head: true }).eq('organizacion_id', orgId),
       ]);
 
       // Mostrar solo si no tiene ni clientes ni productos

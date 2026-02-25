@@ -9,6 +9,7 @@ import Permissions from '../utils/permissions.js';
 import CSV from '../utils/csv.js';
 import Validate from '../utils/validate.js';
 import ImportCSV from '../utils/import-csv.js';
+import Notif from '../utils/notif.js';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -147,11 +148,12 @@ const ProductosPage = {
   async loadProductos() {
     sessionStorage.setItem('crm_filters_productos', JSON.stringify(this.filters));
     try {
+      const orgId = window.App?.organization?.id;
       // El filtro "bajo" requiere comparación columna-a-columna (stock_actual <= stock_minimo)
       // que Supabase JS no soporta vía cliente. Se carga todo con stock_minimo > 0
       // y se filtra client-side, con paginación también client-side.
       if (this.filters.stock === 'bajo') {
-        let query = supabase.from('productos').select('*').gt('stock_minimo', 0);
+        let query = supabase.from('productos').select('*').eq('organizacion_id', orgId).gt('stock_minimo', 0);
         if (this.filters.search) {
           const s = `%${this.filters.search}%`;
           query = query.or(`nombre.ilike.${s},sku.ilike.${s},categoria.ilike.${s},proveedor.ilike.${s}`);
@@ -174,7 +176,8 @@ const ProductosPage = {
 
       let query = supabase
         .from('productos')
-        .select('*', { count: 'exact' });
+        .select('*', { count: 'exact' })
+        .eq('organizacion_id', orgId);
 
       if (this.filters.search) {
         const s = `%${this.filters.search}%`;
@@ -507,9 +510,11 @@ const ProductosPage = {
     document.getElementById('btnActualizarPrecios')?.addEventListener('click', () => this.openModalActualizarPrecios());
 
     document.getElementById('btnImportProductos')?.addEventListener('click', () => ImportCSV.open('productos'));
-    window.addEventListener('crm:import-done', (e) => {
+    if (this._importDoneHandler) window.removeEventListener('crm:import-done', this._importDoneHandler);
+    this._importDoneHandler = (e) => {
       if (e.detail?.tipo === 'productos') { this.currentPage = 0; this.loadProductos(); }
-    }, { once: true });
+    };
+    window.addEventListener('crm:import-done', this._importDoneHandler);
 
     let searchTimeout;
     document.getElementById('searchProductos')?.addEventListener('input', (e) => {
@@ -797,7 +802,8 @@ const ProductosPage = {
   },
 
   closeModal() {
-    document.getElementById('modalContainer').innerHTML = '';
+    const mc = document.getElementById('modalContainer');
+    if (mc) mc.innerHTML = '';
     if (this._escHandler) {
       document.removeEventListener('keydown', this._escHandler);
       this._escHandler = null;
@@ -1229,6 +1235,12 @@ const ProductosPage = {
 
     const tipoLabel = tipo === 'entrada' ? 'Entrada' : tipo === 'salida' ? 'Salida' : 'Stock fijado';
     Toast.success(`${tipoLabel}: stock actualizado a ${nuevoStock} ${prod.unidad_medida || 'uds'}${motivo ? ` (${motivo})` : ''}`);
+
+    // Notificar si el nuevo stock quedó por debajo del mínimo
+    if (prod.stock_minimo > 0 && nuevoStock <= prod.stock_minimo) {
+      Notif.notifyManagers('warning', `Stock bajo: ${prod.nombre}`,
+        `Stock actual: ${nuevoStock} ${prod.unidad_medida || 'uds'} (mínimo: ${prod.stock_minimo})`, '#/productos');
+    }
   },
 };
 

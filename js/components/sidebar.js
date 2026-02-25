@@ -7,7 +7,7 @@ import Permissions from '../utils/permissions.js';
 const Sidebar = {
   render(userProfile, organization) {
     const initials = userProfile
-      ? userProfile.nombre.split(' ').map(n => n[0]).join('').toUpperCase()
+      ? (userProfile.nombre || '').split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || '??'
       : '??';
 
     const rolLabels = {
