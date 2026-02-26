@@ -226,9 +226,11 @@ const ProductosPage = {
 
   async loadListasPrecios() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('listas_precios')
         .select('id, nombre')
+        .eq('organizacion_id', orgId)
         .eq('activa', true);
       this.listasPrecios = data || [];
     } catch (err) {
@@ -239,9 +241,11 @@ const ProductosPage = {
   async loadCategorias() {
     // Obtener categorías únicas de los productos existentes
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('productos')
-        .select('categoria');
+        .select('categoria')
+        .eq('organizacion_id', orgId);
 
       if (data) {
         const cats = [...new Set(data.map(p => p.categoria).filter(Boolean))].sort();
@@ -584,7 +588,8 @@ const ProductosPage = {
   async exportCSV() {
     try {
       Toast.success('Exportando productos...');
-      let query = supabase.from('productos').select('*');
+      const orgId = window.App?.organization?.id;
+      let query = supabase.from('productos').select('*').eq('organizacion_id', orgId);
 
       if (this.filters.search) {
         const s = `%${this.filters.search}%`;
@@ -1132,7 +1137,8 @@ const ProductosPage = {
       const cat = document.getElementById('precioFiltroCategoria')?.value;
       const preview = document.getElementById('precioPreview');
       if (!preview) return;
-      let q = supabase.from('productos').select('id', { count: 'exact', head: true }).eq('activo', true);
+      const orgId = window.App?.organization?.id;
+      let q = supabase.from('productos').select('id', { count: 'exact', head: true }).eq('activo', true).eq('organizacion_id', orgId);
       if (cat) q = q.eq('categoria', cat);
       const { count } = await q;
       preview.textContent = `Se actualizarán ${count ?? 0} producto${count !== 1 ? 's' : ''}.`;
@@ -1161,7 +1167,8 @@ const ProductosPage = {
       btn.textContent = 'Aplicando...';
 
       try {
-        let q = supabase.from('productos').select('id, precio_base').eq('activo', true);
+        const orgId = window.App?.organization?.id;
+        let q = supabase.from('productos').select('id, precio_base').eq('activo', true).eq('organizacion_id', orgId);
         if (cat) q = q.eq('categoria', cat);
         const { data: prods, error } = await q;
         if (error) throw error;
@@ -1196,7 +1203,7 @@ const ProductosPage = {
               precio_anterior: Number(p.precio_base),
               precio_nuevo: nuevo,
               motivo: 'Actualización masiva',
-              usuario_id: userId,
+              changed_by: userId,
             };
           })
           .filter(Boolean);

@@ -173,6 +173,7 @@ const PedidosPage = {
           const { data: clienteMatch } = await supabase
             .from('clientes')
             .select('id')
+            .eq('organizacion_id', orgId)
             .ilike('nombre_establecimiento', `%${this.filters.search}%`);
           const ids = (clienteMatch || []).map(c => c.id);
           if (ids.length > 0) {
@@ -220,9 +221,11 @@ const PedidosPage = {
 
   async loadClientes() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('clientes')
         .select('id, nombre_establecimiento, lista_precios_id, saldo_pendiente, linea_credito, dias_credito, metodo_pago_preferido')
+        .eq('organizacion_id', orgId)
         .in('estado_lead', ['activo', 'negociacion', 'prospecto'])
         .order('nombre_establecimiento');
       this.clientes = data || [];
@@ -233,9 +236,11 @@ const PedidosPage = {
 
   async loadProductosDisponibles() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('productos')
         .select('id, sku, nombre, precio_base, stock_actual')
+        .eq('organizacion_id', orgId)
         .eq('activo', true)
         .order('nombre');
       this.productos = data || [];
@@ -246,9 +251,11 @@ const PedidosPage = {
 
   async loadVendedores() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('usuarios')
         .select('id, nombre')
+        .eq('organizacion_id', orgId)
         .in('rol', ['vendedor', 'gerente', 'admin', 'owner'])
         .eq('activo', true);
       this.vendedores = data || [];
@@ -384,7 +391,11 @@ const PedidosPage = {
         opt.textContent = v.nombre;
         vendSelect.appendChild(opt);
       });
+      // Restaurar valor guardado (las options no existían cuando _restoreFilters() corrió)
+      if (this.filters.vendedor) vendSelect.value = this.filters.vendedor;
     }
+    // Renderizar badges de filtros activos al inicializar (no solo al aplicar)
+    this._renderFilterBadges();
 
     document.getElementById('btnApplyAdvFiltersPed')?.addEventListener('click', () => {
       this.filters.fechaDesde = document.getElementById('filterFechaDesdePed')?.value || '';
@@ -559,9 +570,11 @@ const PedidosPage = {
   async exportCSV() {
     try {
       Toast.success('Exportando pedidos...');
+      const orgId = window.App?.organization?.id;
       let query = supabase
         .from('pedidos')
-        .select('*, cliente:cliente_id(nombre_establecimiento), vendedor:vendedor_id(nombre)');
+        .select('*, cliente:cliente_id(nombre_establecimiento), vendedor:vendedor_id(nombre)')
+        .eq('organizacion_id', orgId);
 
       if (this.filters.search) {
         const num = parseInt(this.filters.search);
@@ -572,6 +585,7 @@ const PedidosPage = {
           const { data: clienteMatch } = await supabase
             .from('clientes')
             .select('id')
+            .eq('organizacion_id', orgId)
             .ilike('nombre_establecimiento', `%${this.filters.search}%`);
           const ids = (clienteMatch || []).map(c => c.id);
           if (ids.length > 0) {
@@ -1262,12 +1276,34 @@ const PedidosPage = {
         const { error } = await supabase.from('pedidos').update(updateData).eq('id', pedido.id);
         if (error) throw error;
 
-        // Al entregar: actualizar fecha_ultima_compra del cliente y notificar
+        // Al entregar: actualizar fecha_ultima_compra del cliente, descontar stock y notificar
         if (nuevoEstado === 'entregado' && pedido.cliente_id) {
           await supabase
             .from('clientes')
             .update({ fecha_ultima_compra: new Date().toISOString() })
             .eq('id', pedido.cliente_id);
+
+          // Descontar stock_actual de cada producto del pedido
+          const { data: lineasPedido } = await supabase
+            .from('productos_pedido')
+            .select('producto_id, cantidad')
+            .eq('pedido_id', pedido.id);
+          if (lineasPedido?.length) {
+            for (const linea of lineasPedido) {
+              const { data: prod } = await supabase
+                .from('productos')
+                .select('stock_actual')
+                .eq('id', linea.producto_id)
+                .single();
+              if (prod) {
+                await supabase
+                  .from('productos')
+                  .update({ stock_actual: Math.max(0, Number(prod.stock_actual) - linea.cantidad) })
+                  .eq('id', linea.producto_id);
+              }
+            }
+          }
+
           const monedaEnt = window.App?.organization?.moneda || 'ARS';
           Notif.notifyManagers('success', `Pedido #${pedido.numero_pedido} entregado`,
             `${pedido.cliente?.nombre_establecimiento || ''} · ${monedaEnt} ${Number(pedido.total).toLocaleString('es-AR')}`, '#/pedidos');
@@ -1408,9 +1444,11 @@ const PedidosPage = {
 
     try {
       // Últimos 8 pedidos del cliente
+      const orgId = window.App?.organization?.id;
       const { data: pedidosRecientes } = await supabase
         .from('pedidos')
         .select('id')
+        .eq('organizacion_id', orgId)
         .eq('cliente_id', clienteId)
         .order('created_at', { ascending: false })
         .limit(8);
@@ -1460,7 +1498,7 @@ const PedidosPage = {
   compartirWhatsApp(pedido, lineas) {
     const moneda = window.App?.organization?.moneda || 'ARS';
     const org = window.App?.organization?.nombre || 'Distribuidora';
-    const cliente = pedido.cliente?.razon_social || pedido.cliente?.nombre || '-';
+    const cliente = pedido.cliente?.nombre_establecimiento || '-';
     const fecha = pedido.created_at ? new Date(pedido.created_at).toLocaleDateString('es-AR') : '-';
     const entrega = pedido.fecha_entrega_programada
       ? new Date(pedido.fecha_entrega_programada).toLocaleDateString('es-AR')
@@ -1664,6 +1702,16 @@ const PedidosPage = {
       if (errPedido) throw errPedido;
 
       // 2. Reemplazar líneas: eliminar las viejas e insertar las nuevas
+      // Si era entregado, leer cantidades originales ANTES de borrar (para ajustar stock luego)
+      let lineasOriginalesDB = [];
+      if (pedido.estado === 'entregado') {
+        const { data: linOrig } = await supabase
+          .from('productos_pedido')
+          .select('producto_id, cantidad')
+          .eq('pedido_id', pedido.id);
+        lineasOriginalesDB = linOrig || [];
+      }
+
       const { error: errDel } = await supabase
         .from('productos_pedido')
         .delete()
@@ -1683,6 +1731,28 @@ const PedidosPage = {
         .from('productos_pedido')
         .insert(nuevasLineas);
       if (errInsert) throw errInsert;
+
+      // Ajustar stock_actual por diferencia si el pedido era entregado
+      if (pedido.estado === 'entregado' && lineasOriginalesDB.length) {
+        const mapOrig = {};
+        lineasOriginalesDB.forEach(l => { mapOrig[l.producto_id] = (mapOrig[l.producto_id] || 0) + l.cantidad; });
+        const mapNueva = {};
+        this.detalleLineas.forEach(l => { mapNueva[l.producto_id] = (mapNueva[l.producto_id] || 0) + l.cantidad; });
+        const prodIds = new Set([...Object.keys(mapOrig), ...Object.keys(mapNueva)]);
+        for (const prodId of prodIds) {
+          const cantOrig = mapOrig[prodId] || 0;
+          const cantNueva = mapNueva[prodId] || 0;
+          const stockDiff = cantNueva - cantOrig; // + = más unidades → sacar más stock; - = menos → devolver
+          if (stockDiff !== 0) {
+            const { data: prod } = await supabase.from('productos').select('stock_actual').eq('id', prodId).single();
+            if (prod) {
+              await supabase.from('productos')
+                .update({ stock_actual: Math.max(0, Number(prod.stock_actual) - stockDiff) })
+                .eq('id', prodId);
+            }
+          }
+        }
+      }
 
       // 3. Ajustar saldo_pendiente del cliente por la diferencia de totales
       // Solo si el pedido no estaba cancelado (los cancelados ya tienen saldo descontado)
@@ -2174,6 +2244,7 @@ const PedidosPage = {
       listEl.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
       try {
+        const orgId = window.App?.organization?.id;
         const { data, error } = await supabase
           .from('devoluciones')
           .select(`
@@ -2181,6 +2252,7 @@ const PedidosPage = {
             pedido:pedido_id(id, numero_pedido, estado, cliente:cliente_id(id, nombre_establecimiento)),
             lineas:devoluciones_lineas(cantidad, motivo_linea, producto:producto_id(nombre))
           `)
+          .eq('organizacion_id', orgId)
           .order('created_at', { ascending: false })
           .limit(100);
 
@@ -2294,6 +2366,27 @@ const PedidosPage = {
       // Cambiar pedido a con_incidencia si estaba entregado
       if (pedidoId && pedidoEstado === 'entregado') {
         await supabase.from('pedidos').update({ estado: 'con_incidencia' }).eq('id', pedidoId);
+      }
+
+      // Restaurar stock_actual de los productos devueltos
+      const { data: lineasDev } = await supabase
+        .from('devoluciones_lineas')
+        .select('producto_id, cantidad')
+        .eq('devolucion_id', devId);
+      if (lineasDev?.length) {
+        for (const linea of lineasDev) {
+          const { data: prod } = await supabase
+            .from('productos')
+            .select('stock_actual')
+            .eq('id', linea.producto_id)
+            .single();
+          if (prod) {
+            await supabase
+              .from('productos')
+              .update({ stock_actual: Number(prod.stock_actual) + linea.cantidad })
+              .eq('id', linea.producto_id);
+          }
+        }
       }
 
       Toast.success('Devolución aprobada');
@@ -2428,6 +2521,7 @@ const PedidosPage = {
     if (el('filterFechaHastaPed')) el('filterFechaHastaPed').value = this.filters.fechaHasta || '';
     if (el('filterTotalMin')) el('filterTotalMin').value = this.filters.totalMin || '';
     if (el('filterTotalMax')) el('filterTotalMax').value = this.filters.totalMax || '';
+    if (el('filterVendedorPed')) el('filterVendedorPed').value = this.filters.vendedor || '';
   },
 };
 

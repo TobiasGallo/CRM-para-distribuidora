@@ -221,9 +221,11 @@ const ClientesPage = {
 
   async loadVendedores() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('usuarios')
         .select('id, nombre')
+        .eq('organizacion_id', orgId)
         .in('rol', ['vendedor', 'gerente', 'admin', 'owner'])
         .eq('activo', true);
       this.vendedores = data || [];
@@ -234,9 +236,11 @@ const ClientesPage = {
 
   async loadListasPrecios() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('listas_precios')
         .select('id, nombre')
+        .eq('organizacion_id', orgId)
         .eq('activa', true);
       this.listasPrecios = data || [];
     } catch (err) {
@@ -380,7 +384,11 @@ const ClientesPage = {
         opt.textContent = v.nombre;
         vendSelect.appendChild(opt);
       });
+      // Restaurar valor guardado (las options no existían cuando _restoreFilters() corrió)
+      if (this.filters.vendedor) vendSelect.value = this.filters.vendedor;
     }
+    // Renderizar badges de filtros activos al inicializar (no solo al aplicar)
+    this._renderFilterBadges();
 
     // Aplicar
     document.getElementById('btnApplyAdvFilters')?.addEventListener('click', () => {
@@ -1393,9 +1401,11 @@ const ClientesPage = {
     if (!list) return;
 
     const moneda = window.App?.organization?.moneda || 'ARS';
+    const orgId = window.App?.organization?.id;
     const { data, error } = await supabase
       .from('cobros')
       .select('*, usuario:usuario_id(nombre), pedido:pedido_id(numero_pedido)')
+      .eq('organizacion_id', orgId)
       .eq('cliente_id', clienteId)
       .order('created_at', { ascending: false });
 
@@ -1432,9 +1442,11 @@ const ClientesPage = {
     // Cargar pedidos con saldo pendiente del cliente para vincular
     let pedidoOptions = '<option value="">Sin vincular</option>';
     try {
+      const orgId = window.App?.organization?.id;
       const { data: pedsPendientes } = await supabase
         .from('pedidos')
         .select('id, numero_pedido, total, estado')
+        .eq('organizacion_id', orgId)
         .eq('cliente_id', clienteId)
         .in('estado', ['pendiente', 'en_preparacion', 'en_ruta', 'entregado', 'con_incidencia'])
         .order('created_at', { ascending: false })
@@ -1572,9 +1584,11 @@ const ClientesPage = {
     const list = document.getElementById('timelineList');
     if (!list) return;
 
+    const orgId = window.App?.organization?.id;
     const { data, error } = await supabase
       .from('interacciones')
       .select('*, usuario:usuario_id(nombre)')
+      .eq('organizacion_id', orgId)
       .eq('cliente_id', clienteId)
       .order('created_at', { ascending: false })
       .limit(50);
@@ -1744,11 +1758,13 @@ const ClientesPage = {
     if (!list) return;
 
     const moneda = window.App?.organization?.moneda || 'ARS';
+    const orgId = window.App?.organization?.id;
     const estado = document.getElementById('filtroPedidosEstado')?.value || '';
 
     let query = supabase
       .from('pedidos')
       .select('id, numero_pedido, estado, total, created_at, fecha_entrega_programada, vendedor:vendedor_id(nombre)')
+      .eq('organizacion_id', orgId)
       .eq('cliente_id', clienteId)
       .order('created_at', { ascending: false })
       .limit(50);
@@ -1824,6 +1840,7 @@ const ClientesPage = {
     if (el('filterFechaHasta')) el('filterFechaHasta').value = this.filters.fechaHasta || '';
     if (el('filterScoringMin')) el('filterScoringMin').value = this.filters.scoringMin || '';
     if (el('filterScoringMax')) el('filterScoringMax').value = this.filters.scoringMax || '';
+    if (el('filterVendedor')) el('filterVendedor').value = this.filters.vendedor || '';
   },
 
 };

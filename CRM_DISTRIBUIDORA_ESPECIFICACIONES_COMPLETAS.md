@@ -1518,6 +1518,170 @@ const routes = Permissions.getVisibleRoutes(); // ['dashboard', 'clientes', ...]
 
 ---
 
+## 🔧 GAPS ADICIONALES XXIII (vigésima auditoría profunda — sesión 33)
+
+### 🟠 Funcional — `compartirWhatsApp()` en pedidos.js siempre muestra '-' como nombre de cliente
+
+#### `pedidos.js` — mensaje de WhatsApp con cliente vacío
+- [x] **`compartirWhatsApp()`**: usaba `pedido.cliente?.razon_social || pedido.cliente?.nombre || '-'` pero el objeto `pedido.cliente` viene del join de `loadPedidos()` que solo selecciona `{ id, nombre_establecimiento }`. Las propiedades `razon_social` y `nombre` nunca existen en ese objeto, por lo que el cliente siempre aparecía como '-' en el mensaje compartido por WhatsApp.
+  - **Fix:** `pedido.cliente?.nombre_establecimiento || '-'`
+
+### 🟡 UX — filtro de vendedor no se restaura visualmente en clientes.js y pedidos.js
+
+#### `clientes.js` + `pedidos.js` — vendedor activo no visible tras recargar
+- [x] **`_restoreFilters()` + `_initAdvancedFilters()`**: `_restoreFilters()` corre antes de que `_initAdvancedFilters()` agregue las `<option>` al select de vendedor. Al setear `vendSelect.value` con un select vacío, la selección no tiene efecto y el dropdown muestra "Todos" aunque el filtro esté activo en la query. Adicionalmente, `_renderFilterBadges()` nunca se llamaba en la inicialización, por lo que los badges de filtros activos tampoco aparecían al recargar.
+  - **Fix (ambos archivos):** después de poblar las opciones de vendedor en `_initAdvancedFilters()`, agregar `vendSelect.value = this.filters.vendedor` y llamar `this._renderFilterBadges()`.
+
+---
+
+## 🔧 GAPS ADICIONALES XXII (decimonovena auditoría profunda — sesión 32)
+
+### 🔴 Crítico — `_bindParadaEvents()` en logistica.js no descuenta stock al marcar entregado
+
+#### `logistica.js` — stock nunca se decrementa desde el módulo de logística
+- [x] **`_bindParadaEvents()` (btn-marcar-entregado)**: al confirmar entrega desde la vista de ruta, se actualizaba `rutas.secuencia_paradas[idx].entregado`, el estado del pedido y `clientes.fecha_ultima_compra`, pero **nunca se descontaba el stock**. En una distribuidora que opera principalmente por logística, esto significaba que el stock jamás bajaba. `pedidos.js` sí lo hace correctamente al cambiar estado a `entregado` directamente.
+  - **Fix:** después del `update` de `clientes`, agregar loop que consulta `productos_pedido` del pedido y decrementa `stock_actual` en cada producto: `Math.max(0, stock_actual - cantidad)`.
+
+### 🟡 Menor — `openModalActualizarPrecios()` en productos.js usa columna incorrecta en historial_precios
+
+#### `productos.js` — actualización masiva de precios no guarda `changed_by`
+- [x] **`openModalActualizarPrecios()`**: el insert al historial de precios usaba `usuario_id: userId` pero la tabla `historial_precios` tiene columna `changed_by` (confirmado por el select `changed_by:changed_by(nombre)` en el mismo módulo y por el insert correcto en `saveProducto()`). La columna `changed_by` quedaba `null` en todos los registros del historial masivo.
+  - **Fix:** `usuario_id: userId` → `changed_by: userId`
+
+---
+
+## 🔧 GAPS ADICIONALES XXI (decimoctava auditoría profunda — sesión 31)
+
+### 🟡 Funcional — `exportarDatos()` en configuracion.js usa columna incorrecta para cobros
+
+#### `configuracion.js` — CSV cobros exporta columna vacía para método de pago
+- [x] **`exportarDatos()`**: el array `archivos` para cobros usaba `key: 'metodo_pago'` pero la tabla `cobros` tiene columna `metodo` (no `metodo_pago`). El helper `toCSV` accedía a `r.metodo_pago` que siempre era `undefined`, resultando en columna "Método Pago" vacía en el backup ZIP.
+  - **Fix:** `key: 'metodo_pago'` → `key: 'metodo'`
+
+### 🟠 Funcional — `exportarDatos()` no exporta `interacciones` pese a declararlo en el texto
+
+#### `configuracion.js` — tabla interacciones ausente del backup ZIP
+- [x] **`exportarDatos()`**: el texto del botón dice "Incluye clientes, productos, pedidos, cobros e interacciones" pero el `Promise.all` nunca consultaba la tabla `interacciones`. El ZIP generado no incluía el historial de visitas/llamadas/reuniones, perdiendo datos críticos de seguimiento.
+  - **Fix:** agregar `interacciones` al `Promise.all` con join a `cliente` y `usuario`, y generar CSV con columnas: Cliente, Usuario, Tipo, Contenido, Resultado, Duración (min), Fecha.
+
+---
+
+## 🔧 GAPS ADICIONALES XX (decimoséptima auditoría profunda — sesión 30)
+
+### 🔴 Funcional — `loadCierreCaja()` en dashboard.js usa columna incorrecta `metodo_pago`
+
+#### `dashboard.js` — campo `metodo_pago` no existe en tabla `cobros`
+- [x] **`loadCierreCaja()`**: `.select('monto, metodo_pago')` y `c.metodo_pago || 'otro'` — la columna real en la tabla `cobros` se llama `metodo` (confirmado en `saveCobro()` de `clientes.js` que hace `insert({ metodo: data.metodo })`). Resultado: el widget "Cobros de hoy" del dashboard siempre agrupaba todos los cobros como método "Otro", ignorando Efectivo/Transferencia/etc.
+  - **Fix:** `.select('monto, metodo')` + `c.metodo || 'otro'`.
+
+### 🟡 UX — `_restoreFilters()` en pedidos.js no restaura `filterVendedorPed` al DOM
+
+#### `pedidos.js` — mismo bug que fue corregido en `clientes.js` en sesión 29
+- [x] **`_restoreFilters()`**: restauraba `this.filters.vendedor` en el objeto pero nunca sincronizaba el `<select id="filterVendedorPed">`. Al navegar hacia pedidos con un filtro vendedor activo, el filtro se aplicaba en la query (invisible) pero no se veía seleccionado en el dropdown.
+  - **Fix:** `if (el('filterVendedorPed')) el('filterVendedorPed').value = this.filters.vendedor || '';`
+
+### 🟡 Funcional — `guardarCambiosPedido()` no ajusta stock al editar pedido entregado
+
+#### `pedidos.js` — stock desincronizado al editar cantidades post-entrega
+- [x] **`guardarCambiosPedido()`**: al editar un pedido en estado `entregado` (stock ya descontado), el `saldo_pendiente` se ajustaba correctamente por diferencia pero el `stock_actual` no se recalculaba. Ejemplo: pedido con 10 unidades → stock decrementado 10. Si se edita a 8 unidades, las 2 unidades extra quedaban "perdidas" del inventario.
+  - **Fix:** antes del `delete` de líneas, leer cantidades originales de la DB; después del `insert`, calcular diff por producto (`cantNueva - cantOrig`) y actualizar `stock_actual` con `Math.max(0, stock_actual - stockDiff)`.
+
+---
+
+## 🔧 GAPS ADICIONALES XIX (decimosexta auditoría profunda — sesión 29)
+
+### 🔴 Crítico — `cargarDevoluciones()` sin `organizacion_id`
+
+#### `pedidos.js` — query devoluciones sin org filter
+- [x] **`openModalDevoluciones()` → `cargarDevoluciones()`**: `supabase.from('devoluciones').select(...)` sin `.eq('organizacion_id', orgId)` → managers ven las devoluciones de **todas las organizaciones** del sistema.
+  - **Fix:** `const orgId = window.App?.organization?.id;` + `.eq('organizacion_id', orgId)` antes del `.order()`.
+
+### 🟡 Menor — 2 queries sin `organizacion_id` (bajo riesgo)
+
+- [x] **`loadProductosFrecuentes(clienteId)`** (`pedidos.js`): `supabase.from('pedidos')` filtra solo por `cliente_id` sin `organizacion_id`. Fix: `.eq('organizacion_id', orgId)`.
+- [x] **`openModalCobro()` → dropdown pedidos vinculables** (`clientes.js`): `supabase.from('pedidos')` sin `organizacion_id`. Fix: `.eq('organizacion_id', orgId)`.
+
+### 🟡 UX — `_restoreFilters()` no restaura el filtro Vendedor
+
+- [x] **`_restoreFilters()`** (`clientes.js`): Al volver a Clientes, el filtro `vendedor` se restaura en `this.filters` y aplica en la query, pero el `<select id="filterVendedor">` queda visualmente en blanco. Fix: agregar `if (el('filterVendedor')) el('filterVendedor').value = this.filters.vendedor || '';`.
+
+### 🟠 Funcional — Gestión automática de stock implementada
+
+- [x] **Stock no se descontaba al entregar** (`pedidos.js`): Al marcar pedido `entregado`, `stock_actual` de los productos no bajaba nunca. Fix: en el handler de estado `entregado`, cargar líneas del pedido (`productos_pedido`) y decrementar `stock_actual` con `Math.max(0, stock - cantidad)`.
+- [x] **Stock no se reponía al aprobar devolución** (`pedidos.js`): En `_aprobarDevolucion()`, los productos devueltos no recuperaban su stock. Fix: cargar líneas de `devoluciones_lineas` e incrementar `stock_actual + cantidad` para cada producto.
+
+**Total: 6 fixes en 2 archivos (`pedidos.js` y `clientes.js`).**
+
+---
+
+## 🔧 GAPS ADICIONALES XVIII (decimoquinta auditoría profunda — sesión 28)
+
+### 🔴 Crítico — Queries sin `organizacion_id` en exportación, actualización masiva de precios y Top Productos del dashboard
+
+**Patrón:** La sesión 27 corrigió los helpers de dropdowns, pero quedaron 4 queries más sin org filter: la exportación CSV de productos, el preview y la ejecución de "Actualizar Precios en Lote" en productos, y el widget Top Productos del dashboard que usaba un filtro por join no soportado en Supabase JS.
+
+#### `productos.js` — 3 queries sin org filter
+- [x] **`exportCSV()`** (ln 591): `supabase.from('productos').select('*')` sin `organizacion_id` → exporta productos de todas las orgs.
+  - **Fix:** `const orgId = window.App?.organization?.id;` + `.eq('organizacion_id', orgId)` en la query.
+- [x] **`openModalActualizarPrecios()` → `updatePreview()`** (ln 1139): count query sin org filter → el preview de "Se actualizarán X productos" contaba productos de todas las orgs.
+  - **Fix:** `.eq('organizacion_id', orgId)` (con `orgId` declarado en la función `updatePreview`).
+- [x] **`openModalActualizarPrecios()` → confirm handler** (ln 1168): select sin org filter → la actualización masiva de precios afectaba productos de otras orgs.
+  - **Fix:** `const orgId = window.App?.organization?.id;` + `.eq('organizacion_id', orgId)`.
+
+#### `dashboard.js` — 1 query con patrón de filtro por join no soportado
+- [x] **`loadTopProductos()`** (ln 646): consultaba `productos_pedido` con `.gte('pedido.created_at', desde)` — filtro a través de join que PostgREST no aplica correctamente, retornando datos de otras orgs sin aislamiento.
+  - **Fix:** Reescritura usando el patrón de `reportes.js tabProductos()`:
+    1. Primero obtener IDs de pedidos org-filtrados: `supabase.from('pedidos').select('id').eq('organizacion_id', orgId).gte('created_at', desde)`
+    2. Luego filtrar `productos_pedido` por esos IDs: `.in('pedido_id', pedidoIds)`
+
+**Total: 4 queries corregidos en 2 archivos.**
+
+---
+
+## 🔧 GAPS ADICIONALES XVII (decimocuarta auditoría profunda — sesión 27)
+
+### 🔴 Crítico — Funciones auxiliares (helpers/dropdowns) sin `organizacion_id`
+
+**Patrón detectado:** Las sesiones 25 y 26 corrigieron los SELECT principales (tablas y gráficos). Quedaron sin corregir todas las **funciones auxiliares** que cargan datos para dropdowns de formularios, buscadores en modales y paneles secundarios de fichas.
+
+#### `pedidos.js` — 4 queries sin org filter
+- `loadClientes()` (ln 223): tabla `clientes` → dropdown "Cliente" en modal Nuevo Pedido
+- `loadProductosDisponibles()` (ln 236): tabla `productos` → buscador de productos en Nuevo Pedido
+- `loadVendedores()` (ln 249): tabla `usuarios` → dropdown vendedor en Nuevo Pedido y filtros avanzados
+- Sub-query inline en `loadPedidos()` (ln 173): tabla `clientes` → búsqueda de pedido por nombre de cliente
+- **Fix:** `const orgId = window.App?.organization?.id;` + `.eq('organizacion_id', orgId)` en cada uno.
+
+#### `clientes.js` — 2 queries sin org filter
+- `loadVendedores()` (ln 224): tabla `usuarios` → dropdown "Vendedor asignado" en form cliente
+- `loadListasPrecios()` (ln 237): tabla `listas_precios` → dropdown lista de precios en form cliente
+- **Fix:** `.eq('organizacion_id', orgId)` en cada uno.
+
+#### `pipeline.js` — 2 queries sin org filter
+- `loadClientes()` (ln 101): tabla `clientes` → dropdown cliente en modal oportunidad
+- `loadVendedores()` (ln 113): tabla `usuarios` → dropdown vendedor en modal oportunidad
+- **Fix:** `.eq('organizacion_id', orgId)` en cada uno.
+
+#### `productos.js` — 2 queries sin org filter
+- `loadListasPrecios()` (ln 229): tabla `listas_precios` → modal editar producto / actualizar precios en lote
+- `loadCategorias()` (ln 243): tabla `productos` → filtro de categorías en la tabla
+- **Fix:** `.eq('organizacion_id', orgId)` en cada uno.
+
+#### `logistica.js` — 2 queries sin org filter
+- `loadRepartidores()` (ln 110): tabla `usuarios` → dropdown repartidor en modal nueva ruta
+- `loadPedidosSinRuta()` (ln 122): tabla `pedidos` → panel "Asignar pedidos a ruta"
+- **Fix:** `.eq('organizacion_id', orgId)` en cada uno.
+
+#### `clientes.js` — Ficha cliente (3 queries, riesgo bajo pero inconsistentes)
+- `loadCobros(clienteId)` (ln 1396): tabla `cobros` → filtrado solo por `cliente_id`
+- `loadInteracciones(clienteId)` (ln 1575): tabla `interacciones` → filtrado solo por `cliente_id`
+- `loadFichaPedidos(clienteId)` (ln 1749): tabla `pedidos` → filtrado solo por `cliente_id`
+- **Riesgo:** Bajo, ya que `cliente_id` es implícitamente de la org. Fix de defensa en profundidad.
+- **Fix:** `const orgId = window.App?.organization?.id;` + `.eq('organizacion_id', orgId)` adicional.
+
+**Total: 15 queries auxiliares corregidos en 5 archivos.**
+
+---
+
 ## 🔧 GAPS ADICIONALES XVI (decimotercera auditoría profunda — sesión 26)
 
 ### 🔴 Crítico — Data isolation en búsqueda global, configuración y exportación

@@ -2279,6 +2279,229 @@ Router.register('clientes', (el) => ClientesPage.render(el));</code></pre>
       <!-- ==================== CHANGELOG ==================== -->
       <h2 id="changelog">Changelog / Historial de Cambios</h2>
 
+      <h3>Sesión 33 — cliente vacío en WhatsApp y filtro vendedor sin restaurar visualmente</h3>
+
+      <h4>pedidos.js — compartirWhatsApp() muestra '-' como nombre de cliente (funcional)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/pedidos.js</code>.<br>
+        <strong>Causa:</strong> <code>compartirWhatsApp()</code> accedía a <code>pedido.cliente?.razon_social || pedido.cliente?.nombre || '-'</code>,
+        pero el objeto <code>pedido.cliente</code> viene del join de <code>loadPedidos()</code> que solo selecciona <code>{ id, nombre_establecimiento }</code>.
+        Las propiedades <code>razon_social</code> y <code>nombre</code> nunca existen en ese objeto, por lo que el nombre del cliente
+        siempre aparecía como <code>'-'</code> en el mensaje de WhatsApp compartido con el cliente.<br>
+        <strong>Fix:</strong> <code>pedido.cliente?.nombre_establecimiento || '-'</code>.
+      </p>
+
+      <h4>clientes.js + pedidos.js — filtro de vendedor y badges no se restauran visualmente al recargar (UX)</h4>
+      <p>
+        <strong>Archivos:</strong> <code>js/pages/clientes.js</code>, <code>js/pages/pedidos.js</code>.<br>
+        <strong>Causa:</strong> <code>_restoreFilters()</code> se ejecuta antes de que <code>_initAdvancedFilters()</code> agregue las
+        <code>&lt;option&gt;</code> al select de vendedor. Al intentar setear <code>vendSelect.value</code> sobre un select vacío,
+        la selección no tiene efecto y el dropdown siempre mostraba "Todos" aunque el filtro estuviera activo en la query.
+        Además, <code>_renderFilterBadges()</code> nunca se llamaba durante la inicialización, por lo que los chips de filtros activos tampoco
+        aparecían al recargar la página (aunque la query sí filtraba correctamente).<br>
+        <strong>Fix:</strong> después de poblar las opciones del select de vendedor en <code>_initAdvancedFilters()</code>,
+        agregar <code>vendSelect.value = this.filters.vendedor</code> y llamar <code>this._renderFilterBadges()</code>.
+      </p>
+
+      <h3>Sesión 32 — stock no descontado desde logística e historial de precios sin changed_by</h3>
+
+      <h4>logistica.js — _bindParadaEvents() no decrementa stock al marcar entregado (crítico)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/logistica.js</code>.<br>
+        <strong>Causa:</strong> Al confirmar entrega desde la vista de ruta (botón <em>btn-marcar-entregado</em>), el código actualizaba
+        <code>rutas.secuencia_paradas</code>, el estado del pedido a <code>entregado</code> y <code>clientes.fecha_ultima_compra</code>,
+        pero nunca descontaba el stock de los productos del pedido. En una distribuidora que opera principalmente vía logística,
+        el inventario nunca bajaba al entregar por esta vía. <code>pedidos.js</code> sí ejecutaba el decremento al cambiar estado
+        directamente desde el módulo de pedidos.<br>
+        <strong>Fix:</strong> Después del update de <code>clientes</code>, se agrega un loop que consulta
+        <code>productos_pedido</code> del pedido y aplica <code>Math.max(0, stock_actual - cantidad)</code> a cada producto.
+      </p>
+
+      <h4>productos.js — openModalActualizarPrecios() guarda usuario_id en vez de changed_by en historial_precios (menor)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/productos.js</code>.<br>
+        <strong>Causa:</strong> El insert masivo al historial de precios usaba <code>usuario_id: userId</code>, pero la tabla
+        <code>historial_precios</code> tiene columna <code>changed_by</code>. El mismo módulo la usa correctamente en
+        <code>saveProducto()</code> y en el <code>select</code> (<code>changed_by:changed_by(nombre)</code>).
+        Todos los registros generados por actualización masiva quedaban con <code>changed_by = null</code>.<br>
+        <strong>Fix:</strong> <code>usuario_id: userId</code> → <code>changed_by: userId</code>.
+      </p>
+
+      <h3>Sesión 31 — export ZIP con columna vacía en cobros e interacciones ausentes del backup</h3>
+
+      <h4>configuracion.js — exportarDatos() columna "Método Pago" vacía en cobros CSV (funcional)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/configuracion.js</code>.<br>
+        <strong>Causa:</strong> En el array <code>archivos</code> para el CSV de cobros, la columna usaba
+        <code>key: 'metodo_pago'</code> pero la tabla <code>cobros</code> tiene columna <code>metodo</code>
+        (no <code>metodo_pago</code>). El helper <code>toCSV</code> accedía a <code>r.metodo_pago</code>
+        que siempre era <code>undefined</code>, generando columna "Método Pago" completamente vacía en el backup.<br>
+        <strong>Fix:</strong> <code>key: 'metodo_pago'</code> → <code>key: 'metodo'</code>.
+      </p>
+
+      <h4>configuracion.js — exportarDatos() no incluía interacciones pese a declararlo (funcional)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/configuracion.js</code>.<br>
+        <strong>Causa:</strong> El texto del botón de export dice explícitamente
+        "Incluye clientes, productos, pedidos, cobros e interacciones", pero el <code>Promise.all</code>
+        nunca consultaba la tabla <code>interacciones</code>. El ZIP resultante no contenía el historial de
+        visitas, llamadas y reuniones — datos críticos de seguimiento comercial.<br>
+        <strong>Fix:</strong> Agregar <code>interacciones</code> al <code>Promise.all</code> con join a
+        <code>cliente</code> y <code>usuario</code>; generar CSV con columnas:
+        Cliente, Usuario, Tipo, Contenido, Resultado, Duración (min), Fecha.
+      </p>
+
+      <h3>Sesión 30 — cierre de caja con campo incorrecto, stock al editar entregado, UX vendedor pedidos</h3>
+
+      <h4>dashboard.js — loadCierreCaja() usaba columna metodo_pago inexistente (funcional)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/dashboard.js</code>.<br>
+        <strong>Causa:</strong> La query a la tabla <code>cobros</code> seleccionaba
+        <code>metodo_pago</code> pero la columna real se llama <code>metodo</code> (tal como la inserta
+        <code>saveCobro()</code> en <code>clientes.js</code>). Resultado: <code>c.metodo_pago</code>
+        siempre era <code>undefined</code> y todos los cobros del día aparecían agrupados como método "Otro".<br>
+        <strong>Fix:</strong> <code>.select('monto, metodo')</code> + <code>c.metodo || 'otro'</code>.
+      </p>
+
+      <h4>pedidos.js — guardarCambiosPedido() no ajustaba stock en pedido entregado (funcional)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/pedidos.js</code>.<br>
+        <strong>Causa:</strong> Al editar las cantidades de un pedido ya en estado <code>entregado</code>
+        (cuyo stock ya había sido descontado), el <code>saldo_pendiente</code> se corregía por diferencia
+        pero el <code>stock_actual</code> no se recalculaba, quedando desincronizado.<br>
+        <strong>Fix:</strong> antes de borrar las líneas antiguas, se leen las cantidades originales de la DB;
+        tras insertar las nuevas, se calcula el diff por producto y se aplica
+        <code>stock_actual - (cantNueva - cantOrig)</code> con floor en 0.
+      </p>
+
+      <h4>pedidos.js — _restoreFilters() no restauraba filterVendedorPed al DOM (UX)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/pedidos.js</code>.<br>
+        <strong>Causa:</strong> Mismo bug corregido para <code>clientes.js</code> en sesión 29. El filtro
+        <code>vendedor</code> se guardaba y restauraba en <code>this.filters</code> pero el
+        <code>&lt;select id="filterVendedorPed"&gt;</code> nunca se actualizaba visualmente; el filtro se
+        aplicaba en la query pero no se veía seleccionado.<br>
+        <strong>Fix:</strong> <code>if (el('filterVendedorPed')) el('filterVendedorPed').value = this.filters.vendedor || '';</code>
+      </p>
+
+      <h3>Sesión 29 — devoluciones sin org filter, stock automático, fixes menores</h3>
+
+      <h4>pedidos.js — cargarDevoluciones() sin organizacion_id (crítico)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/pedidos.js</code>.<br>
+        <strong>Causa:</strong> La función interna <code>cargarDevoluciones()</code> dentro de
+        <code>openModalDevoluciones()</code> consultaba <code>supabase.from('devoluciones')</code> sin filtro
+        de organización, exponiendo devoluciones de todas las orgs del sistema a cualquier manager.<br>
+        <strong>Fix:</strong> <code>const orgId = window.App?.organization?.id;</code> +
+        <code>.eq('organizacion_id', orgId)</code>.
+      </p>
+
+      <h4>pedidos.js — gestión automática de stock</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/pedidos.js</code>.<br>
+        <strong>Fix 1 — descuento al entregar:</strong> Al cambiar estado del pedido a <code>entregado</code>,
+        se cargan las líneas del pedido (<code>productos_pedido</code>) y se decrementa <code>stock_actual</code>
+        de cada producto con <code>Math.max(0, stock_actual - cantidad)</code>. El stock nunca puede quedar negativo.<br>
+        <strong>Fix 2 — reposición al aprobar devolución:</strong> En <code>_aprobarDevolucion()</code>, se cargan
+        las líneas de la devolución (<code>devoluciones_lineas</code>) y se incrementa <code>stock_actual + cantidad</code>
+        para cada producto devuelto. Esto asegura que el stock del sistema refleje los movimientos reales de mercadería.
+      </p>
+
+      <h4>pedidos.js / clientes.js — 2 queries menores sin organizacion_id</h4>
+      <p>
+        <strong>Fix 1 — <code>loadProductosFrecuentes(clienteId)</code></strong> (<code>pedidos.js</code>):
+        La query de pedidos recientes del cliente no tenía <code>organizacion_id</code>. Bajo riesgo (clienteId
+        es org-scoped), pero inconsistente. Fix: <code>.eq('organizacion_id', orgId)</code>.<br>
+        <strong>Fix 2 — <code>openModalCobro()</code> dropdown de pedidos</strong> (<code>clientes.js</code>):
+        El dropdown de pedidos vinculables al cobro tampoco tenía org filter. Fix: <code>.eq('organizacion_id', orgId)</code>.
+      </p>
+
+      <h4>clientes.js — _restoreFilters() no restauraba el filtro Vendedor (UX)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/clientes.js</code>.<br>
+        <strong>Causa:</strong> Al navegar de vuelta a la página Clientes, el filtro <code>vendedor</code> se
+        restauraba en <code>this.filters</code> y se aplicaba en la query (resultados filtrados), pero el
+        <code>&lt;select id="filterVendedor"&gt;</code> quedaba visualmente vacío. El usuario veía resultados
+        filtrados sin poder ver ni qué filtro estaba activo.<br>
+        <strong>Fix:</strong> Agregar <code>if (el('filterVendedor')) el('filterVendedor').value = this.filters.vendedor || '';</code>
+        al final de <code>_restoreFilters()</code>.
+      </p>
+
+      <h3>Sesión 28 — organizacion_id faltante en exportación, precios masivos y Top Productos del dashboard</h3>
+
+      <h4>productos.js — 3 queries sin organizacion_id (crítico)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/productos.js</code>.<br>
+        <strong>Fix 1 — <code>exportCSV()</code>:</strong> La query <code>supabase.from('productos').select('*')</code>
+        no tenía <code>organizacion_id</code>, retornando productos de todas las organizaciones al exportar CSV.
+        Fix: <code>const orgId = window.App?.organization?.id;</code> + <code>.eq('organizacion_id', orgId)</code>.<br>
+        <strong>Fix 2 — <code>openModalActualizarPrecios()</code> → <code>updatePreview()</code>:</strong> El count
+        query para el preview "Se actualizarán X productos" no filtraba por org. Fix: <code>const orgId = ...</code>
+        + <code>.eq('organizacion_id', orgId)</code> en la función interna <code>updatePreview</code>.<br>
+        <strong>Fix 3 — <code>openModalActualizarPrecios()</code> → confirm handler:</strong> La ejecución real de la
+        actualización masiva de precios tampoco filtraba por org, pudiendo afectar productos de otras orgs.
+        Fix: <code>const orgId = ...</code> + <code>.eq('organizacion_id', orgId)</code>.
+      </p>
+
+      <h4>dashboard.js — loadTopProductos() con filtro por join no soportado (crítico)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/dashboard.js</code>.<br>
+        <strong>Causa:</strong> <code>loadTopProductos()</code> consultaba <code>productos_pedido</code> con
+        <code>.gte('pedido.created_at', desde)</code> — filtrar a través de una relación embebida no aplica
+        aislamiento de organización en PostgREST. Podía retornar líneas de pedidos de otras orgs.<br>
+        <strong>Fix:</strong> Reescritura con el patrón de dos pasos usado en <code>reportes.js</code>:
+        (1) obtener IDs de pedidos org-filtrados (<code>.eq('organizacion_id', orgId)</code>),
+        (2) filtrar <code>productos_pedido</code> con <code>.in('pedido_id', pedidoIds)</code>.
+        También se agrega early return si no hay pedidos en el período.
+      </p>
+
+      <h3>Sesión 27 — organizacion_id faltante en funciones auxiliares/helpers (data isolation)</h3>
+
+      <h4>pedidos.js — 5 queries auxiliares sin organizacion_id (crítico)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/pedidos.js</code>.<br>
+        <strong>Causa:</strong> Las funciones <code>loadClientes()</code>, <code>loadProductosDisponibles()</code>,
+        <code>loadVendedores()</code> y la sub-query inline de búsqueda por nombre de cliente en
+        <code>loadPedidos()</code> — usadas para poblar dropdowns del modal "Nuevo Pedido" y la búsqueda — no
+        filtraban por <code>organizacion_id</code>. Además <code>exportCSV()</code> tampoco declaraba <code>orgId</code>
+        ni lo usaba en la query principal de pedidos.<br>
+        <strong>Fix:</strong> <code>const orgId = window.App?.organization?.id;</code> + <code>.eq('organizacion_id', orgId)</code>
+        en cada función auxiliar y en la query principal de exportCSV.
+      </p>
+
+      <h4>clientes.js — 5 queries sin organizacion_id (crítico + defensa en profundidad)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/clientes.js</code>.<br>
+        <strong>Causa:</strong> <code>loadVendedores()</code> y <code>loadListasPrecios()</code> (dropdowns del form
+        cliente) sin org filter. <code>loadCobros(clienteId)</code>, <code>loadInteracciones(clienteId)</code> y
+        <code>loadFichaPedidos(clienteId)</code> (paneles de la ficha) filtrados solo por <code>cliente_id</code>.<br>
+        <strong>Fix:</strong> <code>.eq('organizacion_id', orgId)</code> en los 5 queries.
+      </p>
+
+      <h4>pipeline.js — 2 queries auxiliares sin organizacion_id (crítico)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/pipeline.js</code>.<br>
+        <strong>Causa:</strong> <code>loadClientes()</code> y <code>loadVendedores()</code> (dropdowns del modal
+        oportunidad) sin org filter.<br>
+        <strong>Fix:</strong> <code>.eq('organizacion_id', orgId)</code> en ambas.
+      </p>
+
+      <h4>productos.js — 2 queries auxiliares sin organizacion_id (crítico)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/productos.js</code>.<br>
+        <strong>Causa:</strong> <code>loadListasPrecios()</code> (modal editar producto / actualizar precios en lote)
+        y <code>loadCategorias()</code> (filtro de categorías de la tabla) sin org filter.<br>
+        <strong>Fix:</strong> <code>.eq('organizacion_id', orgId)</code> en ambas.
+      </p>
+
+      <h4>logistica.js — 2 queries auxiliares sin organizacion_id (crítico)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/logistica.js</code>.<br>
+        <strong>Causa:</strong> <code>loadRepartidores()</code> (dropdown repartidor del modal nueva ruta) y
+        <code>loadPedidosSinRuta()</code> (panel "Asignar pedidos a ruta") sin org filter.<br>
+        <strong>Fix:</strong> <code>.eq('organizacion_id', orgId)</code> en ambas.
+      </p>
+
       <h3>Sesión 26 — organizacion_id faltante en búsqueda global, configuración y exportación</h3>
 
       <h4>global-search.js — 3 queries sin organizacion_id (crítico)</h4>

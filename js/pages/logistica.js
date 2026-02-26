@@ -107,9 +107,11 @@ const LogisticaPage = {
 
   async loadRepartidores() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('usuarios')
         .select('id, nombre')
+        .eq('organizacion_id', orgId)
         .in('rol', ['repartidor', 'vendedor', 'gerente', 'admin', 'owner'])
         .eq('activo', true);
       this.repartidores = data || [];
@@ -120,9 +122,11 @@ const LogisticaPage = {
 
   async loadPedidosSinRuta() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('pedidos')
         .select('id, numero_pedido, total, estado, fecha_entrega_programada, cliente_id, cliente:cliente_id(nombre_establecimiento, direccion_completa, ubicacion_gps)')
+        .eq('organizacion_id', orgId)
         .in('estado', ['pendiente', 'en_preparacion'])
         .is('ruta_id', null)
         .order('fecha_entrega_programada');
@@ -579,6 +583,27 @@ const LogisticaPage = {
               .from('clientes')
               .update({ fecha_ultima_compra: new Date().toISOString() })
               .eq('id', paradaActual.cliente_id);
+          }
+
+          // Decrementar stock de los productos del pedido
+          const { data: lineas } = await supabase
+            .from('productos_pedido')
+            .select('producto_id, cantidad')
+            .eq('pedido_id', paradaActual.pedido_id);
+          if (lineas?.length) {
+            for (const linea of lineas) {
+              const { data: prod } = await supabase
+                .from('productos')
+                .select('stock_actual')
+                .eq('id', linea.producto_id)
+                .single();
+              if (prod) {
+                await supabase
+                  .from('productos')
+                  .update({ stock_actual: Math.max(0, Number(prod.stock_actual) - linea.cantidad) })
+                  .eq('id', linea.producto_id);
+              }
+            }
           }
 
           Toast.success(`Pedido #${paradaActual.numero_pedido} marcado como entregado`);

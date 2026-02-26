@@ -98,9 +98,11 @@ const PipelinePage = {
 
   async loadClientes() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('clientes')
         .select('id, nombre_establecimiento')
+        .eq('organizacion_id', orgId)
         .order('nombre_establecimiento');
       this.clientes = data || [];
     } catch (err) {
@@ -110,9 +112,11 @@ const PipelinePage = {
 
   async loadVendedores() {
     try {
+      const orgId = window.App?.organization?.id;
       const { data } = await supabase
         .from('usuarios')
         .select('id, nombre')
+        .eq('organizacion_id', orgId)
         .in('rol', ['vendedor', 'gerente', 'admin', 'owner'])
         .eq('activo', true);
       this.vendedores = data || [];

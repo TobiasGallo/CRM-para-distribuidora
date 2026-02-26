@@ -1102,12 +1102,14 @@ const ConfiguracionPage = {
         { data: pedidos },
         { data: cobros },
         { data: usuarios },
+        { data: interacciones },
       ] = await Promise.all([
         supabase.from('clientes').select('*').eq('organizacion_id', orgId).order('nombre_establecimiento'),
         supabase.from('productos').select('*').eq('organizacion_id', orgId).order('nombre'),
         supabase.from('pedidos').select('*, cliente:cliente_id(nombre_establecimiento), vendedor:vendedor_id(nombre)').eq('organizacion_id', orgId).order('created_at', { ascending: false }),
         supabase.from('cobros').select('*, cliente:cliente_id(nombre_establecimiento)').eq('organizacion_id', orgId).order('created_at', { ascending: false }),
         supabase.from('usuarios').select('id, nombre, email, rol, activo, created_at').eq('organizacion_id', orgId),
+        supabase.from('interacciones').select('*, cliente:cliente_id(nombre_establecimiento), usuario:usuario_id(nombre)').eq('organizacion_id', orgId).order('created_at', { ascending: false }),
       ]);
 
       const toCSV = (rows, cols) => {
@@ -1176,7 +1178,7 @@ const ConfiguracionPage = {
           contenido: toCSV(cobros, [
             { label: 'Cliente', format: r => r.cliente?.nombre_establecimiento || '' },
             { key: 'monto', label: 'Monto' },
-            { key: 'metodo_pago', label: 'Método Pago' },
+            { key: 'metodo', label: 'Método Pago' },
             { key: 'referencia', label: 'Referencia' },
             { key: 'notas', label: 'Notas' },
             { key: 'created_at', label: 'Fecha' },
@@ -1190,6 +1192,18 @@ const ConfiguracionPage = {
             { key: 'rol', label: 'Rol' },
             { label: 'Activo', format: r => r.activo ? 'Sí' : 'No' },
             { key: 'created_at', label: 'Creado' },
+          ]),
+        },
+        {
+          nombre: `interacciones_${fecha}.csv`,
+          contenido: toCSV(interacciones, [
+            { label: 'Cliente', format: r => r.cliente?.nombre_establecimiento || '' },
+            { label: 'Usuario', format: r => r.usuario?.nombre || '' },
+            { key: 'tipo', label: 'Tipo' },
+            { key: 'contenido', label: 'Contenido' },
+            { key: 'resultado', label: 'Resultado' },
+            { key: 'duracion', label: 'Duración (min)' },
+            { key: 'created_at', label: 'Fecha' },
           ]),
         },
       ];

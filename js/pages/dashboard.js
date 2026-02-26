@@ -640,16 +640,27 @@ const DashboardPage = {
   async loadTopProductos() {
     try {
       const moneda = window.App?.organization?.moneda || 'ARS';
+      const orgId = window.App?.organization?.id;
       const desde = this.getDesde();
 
-      // Traer productos_pedido con pedido para filtrar por fecha
+      // Primero traer IDs de pedidos org-filtrados del período
+      let pedidosQuery = supabase.from('pedidos').select('id').eq('organizacion_id', orgId);
+      if (desde) pedidosQuery = pedidosQuery.gte('created_at', desde);
+      const { data: pedidosData } = await pedidosQuery;
+      const pedidoIds = (pedidosData || []).map(p => p.id);
+
+      if (pedidoIds.length === 0) {
+        const tbody = document.getElementById('topProductos');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin datos en el período</td></tr>';
+        return;
+      }
+
       const { data } = await supabase
         .from('productos_pedido')
-        .select('cantidad, subtotal, producto:producto_id(nombre), pedido:pedido_id(created_at)')
-        .gte('pedido.created_at', desde);
+        .select('cantidad, subtotal, producto:producto_id(nombre)')
+        .in('pedido_id', pedidoIds);
 
-      // Filtrar los que no matchearon el join (pedido fuera de rango)
-      const lineas = (data || []).filter(l => l.pedido !== null);
+      const lineas = data || [];
 
       const porProducto = {};
       lineas.forEach(l => {
@@ -878,7 +889,7 @@ const DashboardPage = {
 
       const { data } = await supabase
         .from('cobros')
-        .select('monto, metodo_pago')
+        .select('monto, metodo')
         .eq('organizacion_id', orgId)
         .gte('created_at', inicioHoy)
         .lt('created_at', finHoy);
@@ -904,7 +915,7 @@ const DashboardPage = {
       const porMetodo = {};
       let totalDia = 0;
       cobros.forEach(c => {
-        const m = c.metodo_pago || 'otro';
+        const m = c.metodo || 'otro';
         if (!porMetodo[m]) porMetodo[m] = { total: 0, cantidad: 0 };
         porMetodo[m].total += Number(c.monto);
         porMetodo[m].cantidad += 1;
