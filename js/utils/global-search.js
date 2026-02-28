@@ -116,7 +116,11 @@ const GlobalSearch = {
     const orgId = window.App?.organization?.id;
 
     try {
-      const [clientes, productos, pedidos] = await Promise.all([
+      const numQuery = parseInt(query, 10);
+      const isNumeric = !isNaN(numQuery);
+
+      // Buscar clientes y productos en paralelo
+      const [clientes, productos] = await Promise.all([
         supabase
           .from('clientes')
           .select('id, nombre_establecimiento, tipo_cliente, ciudad')
@@ -130,13 +134,23 @@ const GlobalSearch = {
           .or(`nombre.ilike.${s},sku.ilike.${s},categoria.ilike.${s}`)
           .eq('activo', true)
           .limit(5),
-        supabase
-          .from('pedidos')
-          .select('id, numero_pedido, total, estado, cliente:cliente_id(nombre_establecimiento)')
-          .eq('organizacion_id', orgId)
-          .or(`numero_pedido::text.ilike.${s}`)
-          .limit(5),
       ]);
+
+      // Buscar pedidos: por número si es numérico, o por cliente_id si es texto
+      let pedidosQuery = supabase
+        .from('pedidos')
+        .select('id, numero_pedido, total, estado, cliente:cliente_id(nombre_establecimiento)')
+        .eq('organizacion_id', orgId)
+        .limit(5);
+      if (isNumeric) {
+        pedidosQuery = pedidosQuery.eq('numero_pedido', numQuery);
+      } else {
+        const clientIds = (clientes.data || []).map(c => c.id);
+        pedidosQuery = clientIds.length > 0
+          ? pedidosQuery.in('cliente_id', clientIds)
+          : pedidosQuery.eq('numero_pedido', -1);
+      }
+      const pedidos = await pedidosQuery;
 
       const clientesData = clientes.data || [];
       const productosData = productos.data || [];

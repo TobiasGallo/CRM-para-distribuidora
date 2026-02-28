@@ -917,7 +917,8 @@ const ClientesPage = {
                   </div>
                   <div class="form-group">
                     <label class="form-label">Saldo pendiente (${moneda})</label>
-                    <input type="number" class="form-input" name="saldo_pendiente" value="${c.saldo_pendiente || 0}" min="0" step="0.01">
+                    <input type="number" class="form-input" name="saldo_pendiente" value="${c.saldo_pendiente || 0}" min="0" step="0.01" readonly>
+                    <small class="form-hint">Gestionado automáticamente por pedidos y cobros</small>
                   </div>
                 </div>
               </div>
@@ -1037,14 +1038,20 @@ const ClientesPage = {
       scoring: parseInt(formData.get('scoring')) || 0,
     };
 
+    // Auto-asignar vendedor si el rol es 'vendedor' y no se seleccionó uno
+    const userRole = window.App?.userProfile?.rol;
+    if (userRole === 'vendedor' && !data.vendedor_asignado_id) {
+      data.vendedor_asignado_id = window.App.userProfile.id;
+    }
+
     const btn = document.getElementById('btnSaveCliente');
     btn.disabled = true;
     btn.textContent = 'Guardando...';
 
     try {
       if (this.editingId) {
-        // EDITAR - no enviar organizacion_id en update
-        const { organizacion_id, ...updateData } = data;
+        // EDITAR - no enviar organizacion_id ni saldo_pendiente (gestionado por sistema)
+        const { organizacion_id, saldo_pendiente, ...updateData } = data;
         const { error } = await supabase
           .from('clientes')
           .update(updateData)

@@ -1027,45 +1027,30 @@ const PedidosPage = {
     btn.textContent = 'Creando...';
 
     try {
-      // 1. Crear el pedido
-      const { data: pedido, error: errPedido } = await supabase
-        .from('pedidos')
-        .insert(pedidoData)
-        .select('id, numero_pedido')
-        .single();
-      if (errPedido) throw errPedido;
-
-      // 2. Crear las líneas de productos
-      const lineasData = this.lineas.map(l => ({
-        organizacion_id: orgId,
-        pedido_id: pedido.id,
-        producto_id: l.producto_id,
-        cantidad: l.cantidad,
-        precio_unitario: l.precio_unitario,
-        subtotal: l.subtotal,
-      }));
-
-      const { error: errLineas } = await supabase
-        .from('productos_pedido')
-        .insert(lineasData);
-      if (errLineas) throw errLineas;
-
-      // 3. Actualizar saldo_pendiente del cliente (leer fresh de DB para evitar race condition)
-      const clienteId = pedidoData.cliente_id;
-      if (clienteId && total > 0) {
-        const { data: cd } = await supabase
-          .from('clientes').select('saldo_pendiente').eq('id', clienteId).single();
-        await supabase
-          .from('clientes')
-          .update({ saldo_pendiente: Number(cd?.saldo_pendiente || 0) + total })
-          .eq('id', clienteId);
-      }
+      // Crear pedido atómico vía RPC (pedido + líneas + saldo en una sola transacción)
+      const { data: result, error } = await supabase.rpc('crear_pedido', {
+        p_cliente_id:      pedidoData.cliente_id,
+        p_vendedor_id:     pedidoData.vendedor_id,
+        p_fecha_entrega:   pedidoData.fecha_entrega_programada,
+        p_metodo_pago:     pedidoData.metodo_pago,
+        p_observaciones:   pedidoData.observaciones,
+        p_total:           total,
+        p_descuento_tipo:  descTipo,
+        p_descuento_valor: descValor,
+        p_descuento_monto: descMonto,
+        p_lineas:          this.lineas.map(l => ({
+          producto_id:     l.producto_id,
+          cantidad:        l.cantidad,
+          precio_unitario: l.precio_unitario,
+          subtotal:        l.subtotal,
+        })),
+      });
+      if (error) throw error;
 
       Toast.success('Pedido creado correctamente');
-      // Notificar a managers del nuevo pedido
       const clienteNombre = this.clientes.find(c => c.id === pedidoData.cliente_id)?.nombre_establecimiento || '';
       const moneda = window.App?.organization?.moneda || 'ARS';
-      Notif.notifyManagers('info', `Nuevo pedido #${pedido.numero_pedido}`,
+      Notif.notifyManagers('info', `Nuevo pedido #${result.numero_pedido}`,
         `${clienteNombre} · ${moneda} ${total.toLocaleString('es-AR')}`, '#/pedidos');
       this.closeModal();
       this.loadPedidos();
@@ -1283,26 +1268,8 @@ const PedidosPage = {
             .update({ fecha_ultima_compra: new Date().toISOString() })
             .eq('id', pedido.cliente_id);
 
-          // Descontar stock_actual de cada producto del pedido
-          const { data: lineasPedido } = await supabase
-            .from('productos_pedido')
-            .select('producto_id, cantidad')
-            .eq('pedido_id', pedido.id);
-          if (lineasPedido?.length) {
-            for (const linea of lineasPedido) {
-              const { data: prod } = await supabase
-                .from('productos')
-                .select('stock_actual')
-                .eq('id', linea.producto_id)
-                .single();
-              if (prod) {
-                await supabase
-                  .from('productos')
-                  .update({ stock_actual: Math.max(0, Number(prod.stock_actual) - linea.cantidad) })
-                  .eq('id', linea.producto_id);
-              }
-            }
-          }
+          // Descontar stock atómico vía RPC (evita race condition TOCTOU)
+          await supabase.rpc('decrementar_stock_pedido', { p_pedido_id: pedido.id });
 
           const monedaEnt = window.App?.organization?.moneda || 'ARS';
           Notif.notifyManagers('success', `Pedido #${pedido.numero_pedido} entregado`,

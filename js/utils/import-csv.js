@@ -174,7 +174,7 @@ const ImportCSV = {
   // ========================================
 
   _parseCSV(text) {
-    const lines = text.replace(/\r/g, '').split('\n').filter(l => l.trim());
+    const lines = text.replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n').filter(l => l.trim());
     if (lines.length < 2) return { rows: [], errors: ['El archivo debe tener al menos una fila de datos'] };
 
     // Detectar separador (coma o punto y coma)
@@ -350,7 +350,7 @@ const ImportCSV = {
       productos: 'sku,nombre,categoria,precio_base,stock_actual,stock_minimo,unidad_medida,proveedor,descripcion\n"PROD001","Nombre del Producto","Categoría","1000","100","10","unidades","Proveedor SA","Descripción opcional"',
     };
 
-    const blob = new Blob([templates[this._tipo]], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + templates[this._tipo]], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

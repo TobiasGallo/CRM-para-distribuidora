@@ -25,28 +25,41 @@ const App = {
   // Datos globales accesibles desde cualquier módulo
   organization: null,
   userProfile: null,
+  _authSub: null, // Suscripción onAuthStateChange para evitar listeners duplicados
 
   async init() {
     Toast.init();
     ErrorHandler.init();
 
-    // Verificar si hay sesión activa
-    const session = await Auth.getSession();
+    // Registrar suscripción ANTES de verificar la sesión para no perder
+    // el evento PASSWORD_RECOVERY que puede dispararse al parsear el hash
+    this._authSub = Auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        this.organization = null;
+        this.userProfile = null;
+        this.showLogin();
+      } else if (event === 'PASSWORD_RECOVERY') {
+        // Usuario llegó desde link de reseteo: mostrar form de nueva contraseña
+        this.showPasswordResetForm();
+      }
+    });
 
+    // Si la URL tiene type=recovery, el SDK Supabase procesa el token
+    // y dispara PASSWORD_RECOVERY en onAuthStateChange. Mostramos login
+    // como pantalla de espera; el evento se encarga del resto.
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    if (hashParams.get('type') === 'recovery') {
+      this.showLogin();
+      return;
+    }
+
+    // Flujo normal: verificar sesión activa
+    const session = await Auth.getSession();
     if (session) {
       await this.loadApp();
     } else {
       this.showLogin();
     }
-
-    // Escuchar cambios de autenticación
-    Auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        this.organization = null;
-        this.userProfile = null;
-        this.showLogin();
-      }
-    });
   },
 
   /**
@@ -55,6 +68,14 @@ const App = {
   showLogin() {
     document.getElementById('app').innerHTML = LoginPage.render();
     LoginPage.initEvents(() => this.loadApp());
+  },
+
+  /**
+   * Mostrar formulario de nueva contraseña (flujo reset de contraseña)
+   */
+  showPasswordResetForm() {
+    document.getElementById('app').innerHTML = LoginPage.renderPasswordReset();
+    LoginPage.initPasswordResetEvents(() => this.loadApp());
   },
 
   /**
@@ -69,7 +90,11 @@ const App = {
       this.userProfile = await Auth.getUserProfile();
       this.organization = await Auth.getOrganization();
     } catch (err) {
-      console.error('Error al obtener datos:', err);
+      console.error('Error al obtener datos del usuario:', err);
+      // Si no se pueden cargar los datos (sesión expirada, red caída, etc.)
+      // redirigir al login en vez de renderizar la app con estado nulo
+      this.showLogin();
+      return;
     }
 
     // Aplicar branding de la organización (colores, nombre)

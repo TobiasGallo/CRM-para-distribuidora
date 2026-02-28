@@ -563,6 +563,7 @@ const LogisticaPage = {
       const btnEntregado = e.target.closest('.btn-marcar-entregado');
       if (btnEntregado) {
         const idx = parseInt(btnEntregado.dataset.index);
+        if (ruta.secuencia_paradas[idx].entregado) return;
         ruta.secuencia_paradas[idx].entregado = true;
         ruta.secuencia_paradas[idx].hora_entrega = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
@@ -585,26 +586,8 @@ const LogisticaPage = {
               .eq('id', paradaActual.cliente_id);
           }
 
-          // Decrementar stock de los productos del pedido
-          const { data: lineas } = await supabase
-            .from('productos_pedido')
-            .select('producto_id, cantidad')
-            .eq('pedido_id', paradaActual.pedido_id);
-          if (lineas?.length) {
-            for (const linea of lineas) {
-              const { data: prod } = await supabase
-                .from('productos')
-                .select('stock_actual')
-                .eq('id', linea.producto_id)
-                .single();
-              if (prod) {
-                await supabase
-                  .from('productos')
-                  .update({ stock_actual: Math.max(0, Number(prod.stock_actual) - linea.cantidad) })
-                  .eq('id', linea.producto_id);
-              }
-            }
-          }
+          // Decrementar stock atómico vía RPC (evita race condition TOCTOU)
+          await supabase.rpc('decrementar_stock_pedido', { p_pedido_id: paradaActual.pedido_id });
 
           Toast.success(`Pedido #${paradaActual.numero_pedido} marcado como entregado`);
           newContainer.innerHTML = this._renderParadas(ruta.secuencia_paradas);

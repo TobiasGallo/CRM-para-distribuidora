@@ -167,6 +167,72 @@ const LoginPage = {
     }
   },
 
+  renderPasswordReset() {
+    return `
+      <div class="login-page">
+        <div class="login-card">
+          <div class="login-header">
+            <h1>CRM Distribuidora</h1>
+            <p>Establecé tu nueva contraseña</p>
+          </div>
+          <div id="resetNewError" class="login-error hidden"></div>
+          <form id="newPasswordForm" class="login-form">
+            <div class="form-group">
+              <label class="form-label" for="newPassword">Nueva contraseña</label>
+              <input type="password" id="newPassword" class="form-input"
+                minlength="8" required autocomplete="new-password"
+                placeholder="Mínimo 8 caracteres" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="newPasswordConfirm">Confirmar contraseña</label>
+              <input type="password" id="newPasswordConfirm" class="form-input"
+                minlength="8" required autocomplete="new-password"
+                placeholder="Repetir contraseña" />
+            </div>
+            <button type="submit" class="btn btn-primary login-btn" id="btnSetPassword">
+              Guardar nueva contraseña
+            </button>
+          </form>
+          <div class="login-footer">CRM Distribuidora de Alimentos</div>
+        </div>
+      </div>
+    `;
+  },
+
+  initPasswordResetEvents(onSuccess) {
+    document.getElementById('newPasswordForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errDiv = document.getElementById('resetNewError');
+      errDiv.classList.add('hidden');
+      const password = document.getElementById('newPassword').value;
+      const confirm = document.getElementById('newPasswordConfirm').value;
+      if (password !== confirm) {
+        errDiv.textContent = 'Las contraseñas no coinciden';
+        errDiv.classList.remove('hidden');
+        return;
+      }
+      if (password.length < 8) {
+        errDiv.textContent = 'La contraseña debe tener al menos 8 caracteres';
+        errDiv.classList.remove('hidden');
+        return;
+      }
+      const btn = document.getElementById('btnSetPassword');
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+      try {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        window.history.replaceState({}, '', window.location.pathname);
+        onSuccess();
+      } catch (err) {
+        errDiv.textContent = err.message || 'Error al actualizar la contraseña. Intentá de nuevo.';
+        errDiv.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Guardar nueva contraseña';
+      }
+    });
+  },
+
   initEvents(onLoginSuccess) {
     const errorDiv = document.getElementById('loginError');
     const successDiv = document.getElementById('loginSuccess');

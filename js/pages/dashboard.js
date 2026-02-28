@@ -780,12 +780,14 @@ const DashboardPage = {
       const orgId = window.App?.organization?.id;
       const alertas = [];
 
-      // 1. Stock bajo
+      // 1. Stock bajo (solo productos con stock_minimo definido, limitado a 100)
       const { data: stockBajo } = await supabase
         .from('productos')
         .select('nombre, stock_actual, stock_minimo')
         .eq('activo', true)
-        .eq('organizacion_id', orgId);
+        .eq('organizacion_id', orgId)
+        .gt('stock_minimo', 0)
+        .limit(100);
 
       (stockBajo || []).forEach(p => {
         if (p.stock_minimo > 0 && p.stock_actual <= p.stock_minimo) {

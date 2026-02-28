@@ -121,7 +121,7 @@ const ReportesPage = {
     const orgId = window.App?.organization?.id;
     let query = supabase.from('pedidos').select('id, total, estado, created_at, metodo_pago').eq('organizacion_id', orgId);
     if (desde) query = query.gte('created_at', desde);
-    const { data } = await query.order('created_at');
+    const { data } = await query.order('created_at').limit(5000);
     const pedidos = data || [];
 
     const entregados = pedidos.filter(p => p.estado === 'entregado');
@@ -263,7 +263,7 @@ const ReportesPage = {
     if (desde) queryPed = queryPed.gte('created_at', desde);
 
     const [{ data: pedidosData }, { data: metasData }] = await Promise.all([
-      queryPed,
+      queryPed.limit(5000),
       supabase.from('metas_vendedor')
         .select('vendedor_id, meta_monto, vendedor:vendedor_id(id, nombre)')
         .eq('organizacion_id', orgId)
@@ -520,7 +520,7 @@ const ReportesPage = {
     // porque Supabase JS no soporta filtrar por columnas de relaciones embebidas
     let pedidosQuery = supabase.from('pedidos').select('id').eq('organizacion_id', orgId).neq('estado', 'cancelado');
     if (desde) pedidosQuery = pedidosQuery.gte('created_at', desde);
-    const { data: pedidosData } = await pedidosQuery;
+    const { data: pedidosData } = await pedidosQuery.limit(5000);
     const pedidoIds = (pedidosData || []).map(p => p.id);
 
     if (pedidoIds.length === 0) {
@@ -845,7 +845,7 @@ const ReportesPage = {
     const orgId = window.App?.organization?.id;
     let queryRutas = supabase.from('rutas').select('id, nombre, estado, fecha, km_estimados, secuencia_paradas, repartidor:repartidor_id(nombre)').eq('organizacion_id', orgId);
     if (desde) queryRutas = queryRutas.gte('fecha', desde.split('T')[0]);
-    const { data: rutas } = await queryRutas.order('fecha', { ascending: false });
+    const { data: rutas } = await queryRutas.order('fecha', { ascending: false }).limit(5000);
 
     const rutasData = rutas || [];
     const completadas = rutasData.filter(r => r.estado === 'completada');

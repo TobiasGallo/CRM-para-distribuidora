@@ -5,6 +5,25 @@
 import Permissions from '../utils/permissions.js';
 
 const Sidebar = {
+  _esc(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
+
+  _safeUrl(url) {
+    if (!url) return null;
+    try {
+      const parsed = new URL(url);
+      return (parsed.protocol === 'https:' || parsed.protocol === 'http:') ? url : null;
+    } catch {
+      return null;
+    }
+  },
+
   render(userProfile, organization) {
     const initials = userProfile
       ? (userProfile.nombre || '').split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || '??'
@@ -20,15 +39,15 @@ const Sidebar = {
     };
 
     // Nombre de la organización (branding dinámico)
-    const orgName = organization?.nombre || 'CRM Distribuidora';
-    const orgLogo = organization?.logo_url;
+    const orgName = this._esc(organization?.nombre || 'CRM Distribuidora');
+    const orgLogo = this._safeUrl(organization?.logo_url);
 
     return `
       <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-logo">
           ${orgLogo
-            ? `<img src="${orgLogo}" alt="${orgName}" style="max-height:32px;border-radius:4px;">`
+            ? `<img src="${this._esc(orgLogo)}" alt="${orgName}" style="max-height:32px;border-radius:4px;">`
             : ''
           }
           <h2>${orgName}</h2>
@@ -40,9 +59,9 @@ const Sidebar = {
 
         <div class="sidebar-footer">
           <div class="sidebar-user">
-            <div class="sidebar-user-avatar">${initials}</div>
+            <div class="sidebar-user-avatar">${this._esc(initials)}</div>
             <div class="sidebar-user-info">
-              <div class="sidebar-user-name">${userProfile?.nombre || 'Usuario'}</div>
+              <div class="sidebar-user-name">${this._esc(userProfile?.nombre || 'Usuario')}</div>
               <div class="sidebar-user-role">${rolLabels[userProfile?.rol] || 'Sin rol'}</div>
             </div>
           </div>

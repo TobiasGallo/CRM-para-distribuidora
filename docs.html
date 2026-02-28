@@ -2279,6 +2279,221 @@ Router.register('clientes', (el) => ClientesPage.render(el));</code></pre>
       <!-- ==================== CHANGELOG ==================== -->
       <h2 id="changelog">Changelog / Historial de Cambios</h2>
 
+      <h3>Sesión 35 — Auditoría profunda: fixes críticos de integridad, RPC atómicas y UX</h3>
+
+      <h4>supabase/17 — RPC transaccional <code>crear_pedido()</code></h4>
+      <p>
+        <strong>Archivo:</strong> <code>supabase/17_rpc_crear_pedido.sql</code>.<br>
+        <strong>Causa:</strong> <code>savePedido()</code> ejecutaba 3 requests separadas (INSERT pedido, INSERT líneas,
+        UPDATE saldo_pendiente). Si el proceso se interrumpía a mitad, quedaban pedidos sin líneas o saldos desactualizados
+        (pedido huérfano).<br>
+        <strong>Fix:</strong> Función PostgreSQL <code>crear_pedido()</code> con <code>SECURITY DEFINER</code> que envuelve
+        las 3 operaciones en una sola transacción atómica. Retorna <code>jsonb</code> con el <code>id</code> y
+        <code>numero_pedido</code> del pedido creado.
+      </p>
+
+      <h4>supabase/18 — RPC atómica <code>decrementar_stock_pedido()</code></h4>
+      <p>
+        <strong>Archivo:</strong> <code>supabase/18_rpc_stock_atomico.sql</code>.<br>
+        <strong>Causa:</strong> El decremento de stock usaba el patrón SELECT → UPDATE (TOCTOU race condition): dos
+        entregas simultáneas del mismo pedido podían leer el mismo stock base y sobreescribirse mutuamente, resultando
+        en stock incorrecto.<br>
+        <strong>Fix:</strong> Función PostgreSQL que usa <code>UPDATE SET stock_actual = GREATEST(0, stock_actual - cantidad)</code>
+        directamente, sin leer el valor previo. Agrupa las líneas del pedido por producto y las procesa en un solo UPDATE
+        por producto.
+      </p>
+
+      <h4>supabase/19 — Sanitización de slug con tildes y ñ</h4>
+      <p>
+        <strong>Archivo:</strong> <code>supabase/19_slug_sanitize.sql</code>.<br>
+        <strong>Causa:</strong> El trigger <code>handle_new_user()</code> generaba slugs con caracteres no-ASCII cuando el
+        nombre de la organización contenía ñ, tildes (á, é, í, ó, ú, ü), generando URLs inválidas.<br>
+        <strong>Fix:</strong> Se agrega la función auxiliar <code>sanitize_slug()</code> que usa <code>TRANSLATE()</code>
+        para reemplazar caracteres acentuados + <code>REGEXP_REPLACE()</code> para eliminar no-alfanuméricos y convertir
+        espacios a guiones. El trigger se reemplaza para usar esta función.
+      </p>
+
+      <h4>supabase/20 — Fix RLS <code>invitaciones_select_org</code> sin <code>TO authenticated</code></h4>
+      <p>
+        <strong>Archivo:</strong> <code>supabase/20_rls_invitaciones_fix.sql</code>.<br>
+        <strong>Causa:</strong> La policy <code>invitaciones_select_org</code> no tenía la cláusula <code>TO authenticated</code>,
+        siendo inconsistente con el resto de las policies del proyecto y potencialmente ejecutándose para usuarios no autenticados.<br>
+        <strong>Fix:</strong> Se elimina y recrea la policy con <code>FOR SELECT TO authenticated</code>.
+      </p>
+
+      <h4>productos.js — SKU <code>null</code> se renderizaba como texto literal "null"</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/productos.js</code>.<br>
+        <strong>Causa:</strong> Desde la migration 13 que hizo <code>sku</code> nullable, la celda de la tabla usaba
+        <code>${p.sku}</code> sin verificar nulidad, por lo que productos sin SKU mostraban literalmente "null" en la UI.<br>
+        <strong>Fix:</strong> Cambiado a <code>${p.sku || ''}</code>.
+      </p>
+
+      <h4>logistica.js — Doble entrega posible + TOCTOU en stock</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/logistica.js</code>.<br>
+        <strong>Causa 1:</strong> El handler de "marcar entregado" no verificaba si la parada ya estaba entregada, permitiendo
+        hacer doble click y ejecutar dos veces el UPDATE de estado del pedido, saldo del cliente y decremento de stock.<br>
+        <strong>Causa 2:</strong> El decremento de stock usaba el patrón TOCTOU (SELECT stock → UPDATE stock - cantidad).<br>
+        <strong>Fix 1:</strong> Se agrega <code>if (ruta.secuencia_paradas[idx].entregado) return;</code> al inicio del handler.<br>
+        <strong>Fix 2:</strong> El loop de stock se reemplaza con <code>supabase.rpc('decrementar_stock_pedido', { p_pedido_id })</code>.
+      </p>
+
+      <h4>pedidos.js — <code>savePedido()</code> reemplazado por RPC atómica + stock TOCTOU corregido</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/pedidos.js</code>.<br>
+        <strong>Causa 1:</strong> <code>savePedido()</code> usaba 3 requests no transaccionales (ver migration 17).<br>
+        <strong>Causa 2:</strong> Al cambiar estado a "entregado", el decremento de stock usaba el patrón TOCTOU.<br>
+        <strong>Fix 1:</strong> <code>savePedido()</code> reemplazado por <code>supabase.rpc('crear_pedido', {...})</code>.<br>
+        <strong>Fix 2:</strong> El loop de stock al cambiar estado se reemplaza con <code>supabase.rpc('decrementar_stock_pedido', { p_pedido_id })</code>.
+      </p>
+
+      <h4>clientes.js — Auto-asignación de vendedor + <code>saldo_pendiente</code> readonly</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/clientes.js</code>.<br>
+        <strong>Causa 1:</strong> Cuando un <code>vendedor</code> creaba un cliente sin seleccionar vendedor asignado,
+        el cliente quedaba sin <code>vendedor_asignado_id</code>, impidiéndole verlo en su propia lista (RLS filtra por
+        <code>vendedor_asignado_id = current_user</code>).<br>
+        <strong>Causa 2:</strong> El campo <code>saldo_pendiente</code> era editable en el formulario, permitiendo
+        pisarlo manualmente y rompiendo la consistencia gestionada por pedidos y cobros. Además, al editar un cliente
+        el saldo se reescribía con el valor del formulario, ignorando cambios recientes.<br>
+        <strong>Fix 1:</strong> En <code>saveCliente()</code> se detecta si el rol es <code>vendedor</code> y el campo
+        está vacío: en ese caso se asigna automáticamente <code>window.App.userProfile.id</code>.<br>
+        <strong>Fix 2:</strong> El input <code>saldo_pendiente</code> ahora tiene <code>readonly</code> con hint explicativo.
+        En el UPDATE se excluye <code>saldo_pendiente</code> del objeto de datos.
+      </p>
+
+      <h4>global-search.js — Búsqueda de pedidos por nombre de cliente (texto)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/utils/global-search.js</code>.<br>
+        <strong>Causa:</strong> Cuando la búsqueda era texto (no numérica), la query de pedidos usaba
+        <code>.eq('numero_pedido', -1)</code> que siempre retorna 0 resultados, haciendo inútil la búsqueda de pedidos
+        por nombre de cliente.<br>
+        <strong>Fix:</strong> Se reestructura el <code>search()</code>: primero corre clientes y productos en paralelo;
+        luego construye la query de pedidos — numérica filtra por <code>numero_pedido</code>, texto usa los IDs de clientes
+        encontrados para filtrar con <code>.in('cliente_id', clientIds)</code>.
+      </p>
+
+      <h4>configuracion.js — Texto engañoso en cambio de contraseña + <code>productos_pedido</code> en export</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/configuracion.js</code>.<br>
+        <strong>Causa 1:</strong> El texto del formulario de contraseña decía "Se enviará un email… con el enlace para
+        restablecer", cuando en realidad el cambio es directo vía <code>supabase.auth.updateUser({ password })</code>
+        sin enviar ningún email.<br>
+        <strong>Causa 2:</strong> El export ZIP no incluía la tabla <code>productos_pedido</code> (líneas de detalle de
+        pedidos), imposibilitando reconstruir los pedidos a partir del backup.<br>
+        <strong>Fix 1:</strong> Texto cambiado a "Cambiá tu contraseña directamente. El cambio es inmediato."<br>
+        <strong>Fix 2:</strong> Se agrega <code>productos_pedido</code> a la query paralela y al ZIP como
+        <code>lineas_pedido_FECHA.csv</code> con columnas: N° Pedido, Producto, SKU, Cantidad, Precio Unitario, Subtotal.
+      </p>
+
+      <h4>reportes.js — Queries sin LIMIT podían traer registros ilimitados</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/reportes.js</code>.<br>
+        <strong>Causa:</strong> Las queries de pedidos en <code>tabVentas()</code>, <code>tabVendedores()</code>,
+        <code>tabProductos()</code> y de rutas en <code>tabEntregas()</code> no tenían <code>LIMIT</code>. En
+        organizaciones con historial largo (miles de pedidos) esto podía generar requests muy pesadas y timeouts.<br>
+        <strong>Fix:</strong> Se agrega <code>.limit(5000)</code> a las 4 queries afectadas.
+      </p>
+
+      <h3>Sesión 34 — Auditoría completa y corrección de bugs estructurales</h3>
+
+      <h4>supabase/13 — Columna <code>unidad_medida</code> en productos + SKU nullable</h4>
+      <p>
+        <strong>Archivo:</strong> <code>supabase/13_productos_unidad_medida.sql</code>.<br>
+        <strong>Causa:</strong> La tabla <code>productos</code> carecía de la columna <code>unidad_medida</code> que el frontend ya usaba
+        en importación CSV y formularios de edición. Además, <code>sku</code> era <code>NOT NULL</code> lo que impedía importar
+        productos sin SKU aunque la restricción <code>UNIQUE</code> de PostgreSQL acepta múltiples <code>NULL</code>.<br>
+        <strong>Fix:</strong> <code>ADD COLUMN IF NOT EXISTS unidad_medida TEXT DEFAULT 'unidades'</code> y
+        <code>ALTER COLUMN sku DROP NOT NULL</code>.
+      </p>
+
+      <h4>supabase/14 — RLS: política org_update extendida a admin</h4>
+      <p>
+        <strong>Archivo:</strong> <code>supabase/14_rls_org_admin.sql</code>.<br>
+        <strong>Causa:</strong> La política <code>org_update</code> en <code>organizaciones</code> solo permitía el rol
+        <code>owner</code>, bloqueando a los <code>admin</code> de guardar cambios en la configuración de la org.<br>
+        <strong>Fix:</strong> Se recrea la política con <code>get_user_rol() IN ('owner', 'admin')</code>.
+      </p>
+
+      <h4>supabase/15 — CHECK constraint cobros.metodo ampliado</h4>
+      <p>
+        <strong>Archivo:</strong> <code>supabase/15_cobros_metodo_check.sql</code>.<br>
+        <strong>Causa:</strong> La constraint original no incluía <code>'debito'</code> ni <code>'credito'</code>, provocando
+        errores al registrar cobros con esos métodos de pago aunque el frontend los ofrecía en el selector.<br>
+        <strong>Fix:</strong> Se elimina la constraint anterior y se crea una nueva con los 7 métodos válidos:
+        <code>efectivo, transferencia, cheque, debito, credito, tarjeta, otro</code>.
+      </p>
+
+      <h4>supabase/16 — Numeración de pedidos por organización (trigger)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>supabase/16_pedidos_numero_por_org.sql</code>.<br>
+        <strong>Causa:</strong> <code>numero_pedido SERIAL</code> usaba una secuencia global de PostgreSQL, haciendo que los
+        números de pedido se alternaran entre organizaciones en lugar de ser independientes por tenant.<br>
+        <strong>Fix:</strong> Se elimina el <code>DEFAULT</code> de la columna y se agrega un trigger
+        <code>BEFORE INSERT</code> que calcula <code>MAX(numero_pedido)+1</code> filtrado por <code>organizacion_id</code>.
+      </p>
+
+      <h4>app.js — Memory leak en onAuthStateChange + PASSWORD_RECOVERY + error en loadApp</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/app.js</code>.<br>
+        <strong>Causa 1:</strong> <code>Auth.onAuthStateChange()</code> se llamaba sin guardar la suscripción, creando un
+        listener duplicado cada vez que <code>App.init()</code> se ejecutaba.<br>
+        <strong>Causa 2:</strong> No había manejo del evento <code>PASSWORD_RECOVERY</code>, por lo que el flujo de reset de
+        contraseña via email redirigía al login normal en lugar de mostrar el formulario de nueva contraseña.<br>
+        <strong>Causa 3:</strong> Si <code>getUserProfile()</code> o <code>getOrganization()</code> fallaban, la app continuaba
+        renderizando con <code>userProfile = null</code>, causando errores en cascada.<br>
+        <strong>Fix:</strong> Suscripción almacenada en <code>this._authSub</code>; handler de <code>PASSWORD_RECOVERY</code>
+        que llama a <code>showPasswordResetForm()</code>; y <code>loadApp()</code> redirige a login si ocurre cualquier error.
+      </p>
+
+      <h4>login.js — Formulario de nueva contraseña (reset flow)</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/login.js</code>.<br>
+        <strong>Causa:</strong> No existían los métodos <code>renderPasswordReset()</code> ni <code>initPasswordResetEvents()</code>
+        que <code>app.js</code> necesita para el flujo de recuperación de contraseña vía email de Supabase.<br>
+        <strong>Fix:</strong> Se agregan ambos métodos. El formulario valida que las contraseñas coincidan y tengan ≥ 8 caracteres,
+        llama a <code>supabase.auth.updateUser({ password })</code> y limpia el hash de la URL antes de cargar la app.
+      </p>
+
+      <h4>global-search.js — Cast inválido <code>::text</code> en filtro PostgREST</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/utils/global-search.js</code>.<br>
+        <strong>Causa:</strong> <code>.or('numero_pedido::text.ilike.%query%')</code> usa sintaxis de cast SQL que PostgREST
+        no soporta dentro de <code>.or()</code>, generando error 400 en la búsqueda de pedidos.<br>
+        <strong>Fix:</strong> Cuando la query es numérica se usa <code>.eq('numero_pedido', parseInt(query))</code>;
+        si no es numérica se retorna vacío (<code>.eq('numero_pedido', -1)</code>).
+      </p>
+
+      <h4>dashboard.js — loadAlertas() sin LIMIT ni filtro server-side</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/pages/dashboard.js</code>.<br>
+        <strong>Causa:</strong> <code>loadAlertas()</code> traía <em>todos</em> los productos activos de la org sin ninguna
+        restricción, pudiendo generar queries muy pesadas en organizaciones con catálogos grandes.<br>
+        <strong>Fix:</strong> Se agrega <code>.gt('stock_minimo', 0)</code> para filtrar en el servidor solo los productos
+        con mínimo definido, y <code>.limit(100)</code> para acotar el resultado.
+      </p>
+
+      <h4>import-csv.js — BOM UTF-8 en plantilla + BOM strip en parser</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/utils/import-csv.js</code>.<br>
+        <strong>Causa:</strong> La plantilla CSV descargable no incluía el BOM (<code>\uFEFF</code>), haciendo que Excel en
+        Windows mostrara caracteres corruptos (ñ, tildes). Además, el parser no eliminaba el BOM de archivos recibidos,
+        causando que el primer encabezado quedara con el prefijo del BOM.<br>
+        <strong>Fix:</strong> Se agrega <code>'\uFEFF'</code> al inicio del Blob en <code>_downloadTemplate()</code> y
+        se reemplaza <code>/^\uFEFF/</code> al inicio de <code>_parseCSV()</code>.
+      </p>
+
+      <h4>sidebar.js — XSS en orgName, orgLogo y nombre de usuario</h4>
+      <p>
+        <strong>Archivo:</strong> <code>js/components/sidebar.js</code>.<br>
+        <strong>Causa:</strong> <code>orgName</code>, <code>orgLogo</code> (en el atributo <code>alt</code> y <code>src</code>)
+        y <code>userProfile.nombre</code> se insertaban en el HTML sin escapar, permitiendo XSS si alguno de esos valores
+        contenía <code>&lt;</code>, <code>"</code>, o una URL con protocolo <code>javascript:</code>.<br>
+        <strong>Fix:</strong> Se agrega el helper <code>_esc(str)</code> para escapar entidades HTML y <code>_safeUrl(url)</code>
+        que valida que la URL use <code>https:</code> u <code>http:</code> antes de usarla como <code>src</code>.
+      </p>
+
       <h3>Sesión 33 — cliente vacío en WhatsApp y filtro vendedor sin restaurar visualmente</h3>
 
       <h4>pedidos.js — compartirWhatsApp() muestra '-' como nombre de cliente (funcional)</h4>

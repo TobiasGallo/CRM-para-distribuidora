@@ -998,7 +998,7 @@ const ConfiguracionPage = {
         <div class="form-section" style="margin-top:1.5rem;">
           <div class="form-section-title">Cambiar contraseña</div>
           <p style="font-size:var(--font-size-sm);color:var(--gray-600);margin-bottom:1rem;">
-            Se enviará un email a <strong>${this.esc(user.email || '')}</strong> con el enlace para restablecer tu contraseña.
+            Cambiá tu contraseña directamente. El cambio es inmediato.
           </p>
           <form id="formPassword">
             <div class="form-row">
@@ -1103,6 +1103,7 @@ const ConfiguracionPage = {
         { data: cobros },
         { data: usuarios },
         { data: interacciones },
+        { data: productosPedido },
       ] = await Promise.all([
         supabase.from('clientes').select('*').eq('organizacion_id', orgId).order('nombre_establecimiento'),
         supabase.from('productos').select('*').eq('organizacion_id', orgId).order('nombre'),
@@ -1110,6 +1111,7 @@ const ConfiguracionPage = {
         supabase.from('cobros').select('*, cliente:cliente_id(nombre_establecimiento)').eq('organizacion_id', orgId).order('created_at', { ascending: false }),
         supabase.from('usuarios').select('id, nombre, email, rol, activo, created_at').eq('organizacion_id', orgId),
         supabase.from('interacciones').select('*, cliente:cliente_id(nombre_establecimiento), usuario:usuario_id(nombre)').eq('organizacion_id', orgId).order('created_at', { ascending: false }),
+        supabase.from('productos_pedido').select('*, pedido:pedido_id(numero_pedido), producto:producto_id(nombre, sku)').eq('organizacion_id', orgId).order('created_at', { ascending: false }),
       ]);
 
       const toCSV = (rows, cols) => {
@@ -1204,6 +1206,17 @@ const ConfiguracionPage = {
             { key: 'resultado', label: 'Resultado' },
             { key: 'duracion', label: 'Duración (min)' },
             { key: 'created_at', label: 'Fecha' },
+          ]),
+        },
+        {
+          nombre: `lineas_pedido_${fecha}.csv`,
+          contenido: toCSV(productosPedido, [
+            { label: 'N° Pedido', format: r => r.pedido?.numero_pedido || '' },
+            { label: 'Producto', format: r => r.producto?.nombre || '' },
+            { label: 'SKU', format: r => r.producto?.sku || '' },
+            { key: 'cantidad', label: 'Cantidad' },
+            { key: 'precio_unitario', label: 'Precio Unitario' },
+            { key: 'subtotal', label: 'Subtotal' },
           ]),
         },
       ];

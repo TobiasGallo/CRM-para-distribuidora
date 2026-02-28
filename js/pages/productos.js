@@ -294,7 +294,7 @@ const ProductosPage = {
             </div>
             <div>
               <div class="nombre">${this.esc(p.nombre)}</div>
-              <div class="sku">${p.sku}</div>
+              <div class="sku">${p.sku || ''}</div>
             </div>
           </div>
         </td>
