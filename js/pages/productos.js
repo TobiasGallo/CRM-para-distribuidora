@@ -124,7 +124,24 @@ const ProductosPage = {
               </tr>
             </thead>
             <tbody id="productosTableBody">
-              <tr><td colspan="7"><div class="loader"><div class="spinner"></div></div></td></tr>
+              ${Array.from({ length: 6 }, () => `
+              <tr class="skeleton-row">
+                <td>
+                  <div style="display:flex;gap:10px;align-items:center;">
+                    <div class="skeleton-cell" style="width:36px;height:36px;border-radius:6px;flex-shrink:0;"></div>
+                    <div>
+                      <div class="skeleton-cell" style="width:120px;margin-bottom:5px;"></div>
+                      <div class="skeleton-cell" style="width:55px;height:10px;"></div>
+                    </div>
+                  </div>
+                </td>
+                <td><div class="skeleton-cell" style="width:80px;"></div></td>
+                <td><div class="skeleton-cell" style="width:65px;"></div></td>
+                <td><div class="skeleton-cell" style="width:70px;"></div></td>
+                <td><div class="skeleton-cell" style="width:75px;"></div></td>
+                <td><div class="skeleton-cell" style="width:55px;"></div></td>
+                <td></td>
+              </tr>`).join('')}
             </tbody>
           </table>
         </div>
@@ -380,9 +397,11 @@ const ProductosPage = {
 
   esc(text) {
     if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   },
 
   updateSortHeaders() {
@@ -1191,7 +1210,6 @@ const ProductosPage = {
         if (upsertErr) throw upsertErr;
 
         // Registrar historial de precios para cada producto afectado
-        const orgId = window.App?.userProfile?.organizacion_id;
         const userId = window.App?.userProfile?.id;
         const historial = prods
           .map(p => {

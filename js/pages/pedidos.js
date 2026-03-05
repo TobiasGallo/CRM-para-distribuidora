@@ -128,7 +128,17 @@ const PedidosPage = {
               </tr>
             </thead>
             <tbody id="pedidosTableBody">
-              <tr><td colspan="8"><div class="loader"><div class="spinner"></div></div></td></tr>
+              ${Array.from({ length: 6 }, () => `
+              <tr class="skeleton-row">
+                <td><div class="skeleton-cell" style="width:58px;"></div></td>
+                <td><div class="skeleton-cell" style="width:130px;"></div></td>
+                <td><div class="skeleton-cell" style="width:90px;"></div></td>
+                <td><div class="skeleton-cell" style="width:85px;"></div></td>
+                <td><div class="skeleton-cell" style="width:75px;"></div></td>
+                <td><div class="skeleton-cell" style="width:72px;"></div></td>
+                <td><div class="skeleton-cell" style="width:72px;"></div></td>
+                <td></td>
+              </tr>`).join('')}
             </tbody>
           </table>
         </div>
@@ -158,7 +168,7 @@ const PedidosPage = {
       const orgId = window.App?.organization?.id;
       let query = supabase
         .from('pedidos')
-        .select('*, cliente:cliente_id(id, nombre_establecimiento), vendedor:vendedor_id(id, nombre)', { count: 'exact' })
+        .select('*, cliente:cliente_id(id, nombre_establecimiento, telefono), vendedor:vendedor_id(id, nombre)', { count: 'exact' })
         .eq('organizacion_id', orgId);
 
       if (this.filters.estado) {
@@ -349,9 +359,11 @@ const PedidosPage = {
 
   esc(text) {
     if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   },
 
   updateSortHeaders() {
@@ -1463,6 +1475,12 @@ const PedidosPage = {
   },
 
   compartirWhatsApp(pedido, lineas) {
+    const telefono = pedido.cliente?.telefono?.trim();
+    if (!telefono) {
+      Toast.error('El cliente no tiene número de teléfono registrado');
+      return;
+    }
+
     const moneda = window.App?.organization?.moneda || 'ARS';
     const org = window.App?.organization?.nombre || 'Distribuidora';
     const cliente = pedido.cliente?.nombre_establecimiento || '-';
@@ -1490,7 +1508,9 @@ const PedidosPage = {
       `Estado: ${this.estadoLabel(pedido.estado)}`,
     ].join('\n');
 
-    const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    // Limpiar el número: solo dígitos para la URL de wa.me
+    const numeroLimpio = telefono.replace(/\D/g, '');
+    const url = `https://wa.me/${numeroLimpio}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
   },
 
@@ -1864,6 +1884,21 @@ const PedidosPage = {
     y += 3;
     doc.line(14, y, 196, y);
     y += 8;
+
+    const descMontoPDF = Number(pedido.descuento_monto || 0);
+    if (descMontoPDF > 0) {
+      const subtotalBrutoPDF = lineas.reduce((s, l) => s + Number(l.subtotal), 0);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Subtotal: ${moneda} ${subtotalBrutoPDF.toFixed(2)}`, 170, y, { align: 'right' });
+      y += 7;
+      const descLabelPDF = pedido.descuento_tipo === 'porcentaje'
+        ? `Descuento (${pedido.descuento_valor}%): - ${moneda} ${descMontoPDF.toFixed(2)}`
+        : `Descuento: - ${moneda} ${descMontoPDF.toFixed(2)}`;
+      doc.text(descLabelPDF, 170, y, { align: 'right' });
+      y += 7;
+    }
+
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text(`TOTAL: ${moneda} ${Number(pedido.total).toFixed(2)}`, 170, y, { align: 'right' });
@@ -2380,6 +2415,7 @@ const PedidosPage = {
 
   imprimirRemito(pedido, lineas) {
     const org = window.App?.organization?.nombre || 'Distribuidora';
+    const monedaRemito = window.App?.organization?.moneda || 'ARS';
     const cliente = pedido.cliente?.razon_social || pedido.cliente?.nombre_establecimiento || pedido.cliente?.nombre || '-';
     const domicilio = pedido.cliente?.domicilio_entrega || pedido.domicilio_entrega || '';
     const fecha = pedido.created_at ? new Date(pedido.created_at).toLocaleDateString('es-AR') : '-';
@@ -2456,6 +2492,14 @@ const PedidosPage = {
   </table>
 
   ${pedido.notas ? `<div class="section"><div class="section-title">Observaciones</div><p>${this.esc(pedido.notas)}</p></div>` : ''}
+
+  ${Number(pedido.descuento_monto) > 0 ? `<div class="section" style="border-color:#f59e0b;">
+    <div class="section-title" style="color:#b45309;">Descuento aplicado</div>
+    <p>${pedido.descuento_tipo === 'porcentaje'
+      ? `${pedido.descuento_valor}% de descuento — ${monedaRemito} ${Number(pedido.descuento_monto).toLocaleString('es-AR', { minimumFractionDigits: 2 })} descontados del total`
+      : `Descuento fijo de ${monedaRemito} ${Number(pedido.descuento_monto).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`
+    }</p>
+  </div>` : ''}
 
   <div class="firma-section">
     <div class="firma-box">Firma y aclaración del receptor</div>

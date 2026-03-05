@@ -9,17 +9,15 @@ import Toast from './utils/toast.js';
 import Sidebar from './components/sidebar.js';
 import Navbar from './components/navbar.js';
 import LoginPage from './pages/login.js';
-import DashboardPage from './pages/dashboard.js';
-import ClientesPage from './pages/clientes.js';
-import ProductosPage from './pages/productos.js';
-import PedidosPage from './pages/pedidos.js';
-import PipelinePage from './pages/pipeline.js';
-import LogisticaPage from './pages/logistica.js';
-import ReportesPage from './pages/reportes.js';
-import ConfiguracionPage from './pages/configuracion.js';
 import Permissions from './utils/permissions.js';
 import ErrorHandler from './utils/error-handler.js';
 import Onboarding from './utils/onboarding.js';
+
+// Las páginas se cargan bajo demanda al navegar (lazy loading)
+const lazyPage = (path) => async (el) => {
+  const { default: Page } = await import(path);
+  return Page.render(el);
+};
 
 const App = {
   // Datos globales accesibles desde cualquier módulo
@@ -87,8 +85,9 @@ const App = {
    */
   async loadApp() {
     try {
-      this.userProfile = await Auth.getUserProfile();
-      this.organization = await Auth.getOrganization();
+      const { profile, organization } = await Auth.getProfileAndOrg();
+      this.userProfile = profile;
+      this.organization = organization;
     } catch (err) {
       console.error('Error al obtener datos del usuario:', err);
       // Si no se pueden cargar los datos (sesión expirada, red caída, etc.)
@@ -118,27 +117,14 @@ const App = {
     Navbar.initEvents();
 
     // Registrar rutas
-    Router.register('dashboard', (el) => DashboardPage.render(el));
-
-    // Placeholder para rutas futuras
-    const placeholder = (name) => (el) => {
-      el.innerHTML = `
-        <div class="card">
-          <div class="card-body text-center">
-            <h2>${name}</h2>
-            <p class="text-muted">Módulo en desarrollo</p>
-          </div>
-        </div>
-      `;
-    };
-
-    Router.register('clientes', (el) => ClientesPage.render(el));
-    Router.register('productos', (el) => ProductosPage.render(el));
-    Router.register('pedidos', (el) => PedidosPage.render(el));
-    Router.register('pipeline', (el) => PipelinePage.render(el));
-    Router.register('rutas', (el) => LogisticaPage.render(el));
-    Router.register('reportes', (el) => ReportesPage.render(el));
-    Router.register('configuracion', (el) => ConfiguracionPage.render(el));
+    Router.register('dashboard',     lazyPage('./pages/dashboard.js'));
+    Router.register('clientes',      lazyPage('./pages/clientes.js'));
+    Router.register('productos',     lazyPage('./pages/productos.js'));
+    Router.register('pedidos',       lazyPage('./pages/pedidos.js'));
+    Router.register('pipeline',      lazyPage('./pages/pipeline.js'));
+    Router.register('rutas',         lazyPage('./pages/logistica.js'));
+    Router.register('reportes',      lazyPage('./pages/reportes.js'));
+    Router.register('configuracion', lazyPage('./pages/configuracion.js'));
 
     // Iniciar router
     Router.init('#pageContent');

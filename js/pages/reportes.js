@@ -47,7 +47,19 @@ const ReportesPage = {
 
       <!-- Contenido del tab -->
       <div id="repContent" class="reportes-content">
-        <div class="loader"><div class="spinner"></div></div>
+        <div style="padding:16px;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+            ${Array.from({ length: 4 }, () => `
+            <div style="background:var(--white);border-radius:10px;padding:18px;border:1px solid var(--gray-200);">
+              <div class="skeleton-cell" style="width:80px;height:10px;margin-bottom:10px;"></div>
+              <div class="skeleton-cell" style="width:110px;height:22px;"></div>
+            </div>`).join('')}
+          </div>
+          <div style="background:var(--white);border-radius:10px;padding:18px;border:1px solid var(--gray-200);">
+            <div class="skeleton-cell" style="width:140px;height:14px;margin-bottom:16px;"></div>
+            <div class="skeleton-cell" style="width:100%;height:200px;border-radius:8px;"></div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -95,7 +107,19 @@ const ReportesPage = {
 
     const content = document.getElementById('repContent');
     if (!content) return;
-    content.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+    content.innerHTML = `<div style="padding:16px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+        ${Array.from({ length: 4 }, () => `
+        <div style="background:var(--white);border-radius:10px;padding:18px;border:1px solid var(--gray-200);">
+          <div class="skeleton-cell" style="width:80px;height:10px;margin-bottom:10px;"></div>
+          <div class="skeleton-cell" style="width:110px;height:22px;"></div>
+        </div>`).join('')}
+      </div>
+      <div style="background:var(--white);border-radius:10px;padding:18px;border:1px solid var(--gray-200);">
+        <div class="skeleton-cell" style="width:140px;height:14px;margin-bottom:16px;"></div>
+        <div class="skeleton-cell" style="width:100%;height:200px;border-radius:8px;"></div>
+      </div>
+    </div>`;
 
     try {
       switch (this.activeTab) {

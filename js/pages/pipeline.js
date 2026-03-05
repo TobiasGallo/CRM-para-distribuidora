@@ -56,7 +56,15 @@ const PipelinePage = {
               <div class="kanban-column-value" data-value="${e.key}">${moneda} 0</div>
             </div>
             <div class="kanban-cards" data-etapa="${e.key}">
-              <div class="kanban-empty">Cargando...</div>
+              <div class="kanban-card" style="pointer-events:none;cursor:default;">
+                <div class="skeleton-cell" style="width:75%;margin-bottom:8px;"></div>
+                <div class="skeleton-cell" style="width:55%;height:10px;margin-bottom:6px;"></div>
+                <div class="skeleton-cell" style="width:45%;height:10px;"></div>
+              </div>
+              <div class="kanban-card" style="pointer-events:none;cursor:default;">
+                <div class="skeleton-cell" style="width:65%;margin-bottom:8px;"></div>
+                <div class="skeleton-cell" style="width:50%;height:10px;"></div>
+              </div>
             </div>
           </div>
         `).join('')}

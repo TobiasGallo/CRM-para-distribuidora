@@ -135,7 +135,24 @@ const ClientesPage = {
               </tr>
             </thead>
             <tbody id="clientesTableBody">
-              <tr><td colspan="7"><div class="loader"><div class="spinner"></div></div></td></tr>
+              ${Array.from({ length: 6 }, () => `
+              <tr class="skeleton-row">
+                <td>
+                  <div style="display:flex;gap:10px;align-items:center;">
+                    <div class="skeleton-cell" style="width:32px;height:32px;border-radius:50%;flex-shrink:0;"></div>
+                    <div>
+                      <div class="skeleton-cell" style="width:130px;margin-bottom:5px;"></div>
+                      <div class="skeleton-cell" style="width:75px;height:10px;"></div>
+                    </div>
+                  </div>
+                </td>
+                <td><div class="skeleton-cell" style="width:75px;"></div></td>
+                <td><div class="skeleton-cell" style="width:80px;"></div></td>
+                <td><div class="skeleton-cell" style="width:90px;"></div></td>
+                <td><div class="skeleton-cell" style="width:65px;"></div></td>
+                <td><div class="skeleton-cell" style="width:70px;height:6px;"></div></td>
+                <td></td>
+              </tr>`).join('')}
             </tbody>
           </table>
         </div>

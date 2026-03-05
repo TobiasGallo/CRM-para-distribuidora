@@ -55,24 +55,50 @@ const Auth = {
 
   /**
    * Obtener perfil del usuario (con rol, organizacion_id, etc.)
-   * Usa cache para evitar queries repetidas
+   * Usa getSession() local en vez de getUser() (network) para evitar una llamada de red extra
    */
   async getUserProfile(forceRefresh = false) {
     if (this._profile && !forceRefresh) return this._profile;
 
-    const user = await this.getUser();
-    if (!user) return null;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return null;
 
     const { data, error } = await supabase
       .from('usuarios')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', session.user.id)
       .single();
 
     if (error) throw error;
 
     this._profile = data;
     return data;
+  },
+
+  /**
+   * Obtener perfil + organización en una sola query (FK join).
+   * Reduce 3 llamadas de red a 1 en el arranque de la app.
+   */
+  async getProfileAndOrg(forceRefresh = false) {
+    if (this._profile && this._organization && !forceRefresh) {
+      return { profile: this._profile, organization: this._organization };
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return { profile: null, organization: null };
+
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*, organizacion:organizaciones(*)')
+      .eq('id', session.user.id)
+      .single();
+
+    if (error) throw error;
+
+    const { organizacion, ...profile } = data;
+    this._profile = profile;
+    this._organization = organizacion;
+    return { profile, organization: organizacion };
   },
 
   /**

@@ -56,7 +56,13 @@ const ConfiguracionPage = {
       </div>
 
       <div class="config-content" id="configContent">
-        <div class="loader"><div class="spinner"></div></div>
+        <div style="padding:20px;max-width:600px;">
+          ${Array.from({ length: 5 }, () => `
+          <div style="margin-bottom:18px;">
+            <div class="skeleton-cell" style="width:110px;height:11px;margin-bottom:8px;"></div>
+            <div class="skeleton-cell" style="width:100%;height:36px;border-radius:6px;"></div>
+          </div>`).join('')}
+        </div>
       </div>
 
       <div id="modalContainer"></div>
@@ -82,7 +88,13 @@ const ConfiguracionPage = {
     const content = document.getElementById('configContent');
     if (!content) return;
 
-    content.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+    content.innerHTML = `<div style="padding:20px;max-width:600px;">
+      ${Array.from({ length: 5 }, () => `
+      <div style="margin-bottom:18px;">
+        <div class="skeleton-cell" style="width:110px;height:11px;margin-bottom:8px;"></div>
+        <div class="skeleton-cell" style="width:100%;height:36px;border-radius:6px;"></div>
+      </div>`).join('')}
+    </div>`;
 
     switch (tab) {
       case 'organizacion': await this.renderOrgTab(content); break;

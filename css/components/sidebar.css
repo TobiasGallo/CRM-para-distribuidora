@@ -15,6 +15,7 @@
   transition: width var(--transition-normal), transform var(--transition-normal);
   z-index: 100;
   overflow-x: hidden;
+  will-change: transform, width;
 }
 
 /* Backdrop oscuro para mobile */
@@ -33,9 +34,10 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  padding: var(--spacing-lg);
+  padding: 0 var(--spacing-lg);
   border-bottom: 1px solid var(--gray-700);
-  min-height: var(--navbar-height);
+  height: var(--navbar-height);
+  flex-shrink: 0;
 }
 
 .sidebar-logo h2 {
@@ -79,7 +81,7 @@
   padding: 0.6rem var(--spacing-lg);
   color: var(--gray-400);
   font-size: var(--font-size-sm);
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
   cursor: pointer;
   white-space: nowrap;
   border-left: 3px solid transparent;

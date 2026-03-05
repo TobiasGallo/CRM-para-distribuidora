@@ -16,6 +16,7 @@
   padding: 0 var(--spacing-xl);
   z-index: 50;
   transition: left var(--transition-normal);
+  contain: layout;
 }
 
 .app-container.sidebar-collapsed .navbar {
@@ -286,8 +287,8 @@
 }
 
 .navbar-logout svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 /* ========================================

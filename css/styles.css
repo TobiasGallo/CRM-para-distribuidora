@@ -2,8 +2,6 @@
    ESTILOS BASE - CRM Distribuidora
    ======================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 /* Reset */
 *,
 *::before,
@@ -130,7 +128,7 @@ ul {
   border-radius: var(--radius-md);
   font-weight: 500;
   font-size: var(--font-size-sm);
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
   border: 1px solid transparent;
 }
 
@@ -350,7 +348,8 @@ ul {
 
 .global-search-wrapper {
   position: relative;
-  margin-right: 0.5rem;
+  display: flex;
+  align-items: center;
 }
 
 .global-search-input {
@@ -366,33 +365,31 @@ ul {
 
 .global-search-wrapper.open .global-search-input {
   width: 240px;
-  padding: 0.4rem 0.75rem 0.4rem 2rem;
+  padding: 0.4rem 0.75rem;
   background: var(--gray-100);
   border: 1px solid var(--gray-200);
 }
 
 .global-search-btn {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
   background: none;
   border: none;
   color: var(--gray-500);
-  padding: 0.4rem;
+  padding: var(--spacing-sm);
   display: flex;
   align-items: center;
   cursor: pointer;
-  z-index: 2;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
 }
 
 .global-search-btn:hover {
+  background-color: var(--gray-100);
   color: var(--gray-700);
 }
 
 .global-search-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
 }
 
 .global-search-results {
@@ -729,6 +726,29 @@ ul {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ========================================
+   SKELETON LOADING
+   ======================================== */
+
+.skeleton-cell {
+  height: 13px;
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+tr.skeleton-row td {
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
 }
 
 /* ========================================

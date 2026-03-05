@@ -52,7 +52,15 @@ const LogisticaPage = {
       <div class="logi-main">
         <div class="logi-lista-panel">
           <div id="rutasLista" class="logi-rutas-lista">
-            <div class="loader"><div class="spinner"></div></div>
+            ${Array.from({ length: 4 }, () => `
+            <div class="logi-ruta-card" style="pointer-events:none;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div class="skeleton-cell" style="width:120px;"></div>
+                <div class="skeleton-cell" style="width:60px;height:10px;"></div>
+              </div>
+              <div class="skeleton-cell" style="width:95px;height:10px;margin-bottom:8px;"></div>
+              <div class="skeleton-cell" style="width:100%;height:6px;border-radius:3px;"></div>
+            </div>`).join('')}
           </div>
         </div>
         <div class="logi-mapa-panel">

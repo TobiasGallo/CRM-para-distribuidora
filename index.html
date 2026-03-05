@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CRM Distribuidora</title>
 
+  <!-- Preconectar recursos externos para reducir latencia de red -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+
   <!-- CSS -->
   <link rel="stylesheet" href="css/variables.css" />
   <link rel="stylesheet" href="css/styles.css" />
@@ -20,17 +25,44 @@
   <link rel="stylesheet" href="css/components/reportes.css" />
   <link rel="stylesheet" href="css/components/configuracion.css" />
 
-  <!-- Supabase SDK (precarga) -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Google Fonts: carga asíncrona — no bloquea el render -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        media="print" onload="this.media='all'">
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  </noscript>
+
+  <!-- Supabase SDK: defer = no bloquea el render, descarga en paralelo -->
+  <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js">
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- Precarga anticipada de módulos JS del núcleo (evita la cascada de imports) -->
+  <link rel="modulepreload" href="js/app.js">
+  <link rel="modulepreload" href="js/config/supabase.js">
+  <link rel="modulepreload" href="js/auth/auth.js">
+  <link rel="modulepreload" href="js/utils/router.js">
+  <link rel="modulepreload" href="js/utils/permissions.js">
+  <link rel="modulepreload" href="js/utils/toast.js">
+  <link rel="modulepreload" href="js/utils/error-handler.js">
+  <link rel="modulepreload" href="js/components/sidebar.js">
+  <link rel="modulepreload" href="js/components/navbar.js">
+  <link rel="modulepreload" href="js/utils/notifications.js">
+  <link rel="modulepreload" href="js/utils/global-search.js">
+  <link rel="modulepreload" href="js/utils/onboarding.js">
+  <link rel="modulepreload" href="js/pages/login.js">
+  <link rel="modulepreload" href="js/pages/dashboard.js">
 
   <!-- jsPDF se carga bajo demanda desde pedidos.js -->
 </head>
 <body>
   <div id="app">
-    <!-- Loader inicial -->
-    <div class="loader" style="min-height: 100vh;">
-      <div class="spinner"></div>
+    <!-- Splash inicial: visible de inmediato sin esperar CSS externo -->
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f9fafb;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+        <line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
     </div>
   </div>
 
