@@ -12,6 +12,7 @@ import LoginPage from './pages/login.js';
 import Permissions from './utils/permissions.js';
 import ErrorHandler from './utils/error-handler.js';
 import Onboarding from './utils/onboarding.js';
+import AiChat from './utils/ai-chat.js';
 
 // Las páginas se cargan bajo demanda al navegar (lazy loading)
 const lazyPage = (path) => async (el) => {
@@ -128,6 +129,9 @@ const App = {
 
     // Iniciar router
     Router.init('#pageContent');
+
+    // Inicializar asistente IA
+    AiChat.init();
 
     // Verificar si mostrar onboarding
     if (await Onboarding.shouldShow()) {

@@ -419,6 +419,7 @@
       <a href="#agregar-pagina" class="docs-nav-link">Agregar una nueva página</a>
       <a href="#roles" class="docs-nav-link">Roles y permisos</a>
       <a href="#changelog" class="docs-nav-link">Changelog / Historial</a>
+      <a href="#changelog" class="docs-nav-link sub">Sesión 36 — IA + Skeleton + Rendimiento</a>
       <a href="#roadmap" class="docs-nav-link">Roadmap de desarrollo</a>
       <a href="#costos" class="docs-nav-link">Costos estimados</a>
     </nav>
@@ -2278,6 +2279,90 @@ Router.register('clientes', (el) => ClientesPage.render(el));</code></pre>
 
       <!-- ==================== CHANGELOG ==================== -->
       <h2 id="changelog">Changelog / Historial de Cambios</h2>
+
+      <h3>Sesión 36 — Rendimiento, skeleton loading y asistente IA</h3>
+
+      <h4>css/styles.css — <code>transition: all</code> reemplazado por propiedades específicas</h4>
+      <p>
+        <strong>Archivo:</strong> <code>css/styles.css</code>.<br>
+        <strong>Causa:</strong> <code>.btn { transition: all }</code> obliga al browser a recalcular <em>todas</em> las
+        propiedades CSS en cada hover, generando paint y layout innecesarios.<br>
+        <strong>Fix:</strong> Cambiado a <code>transition: background-color, color, border-color</code>.
+      </p>
+
+      <h4>css/components/sidebar.css — <code>transition: all</code> + <code>will-change</code></h4>
+      <p>
+        <strong>Archivo:</strong> <code>css/components/sidebar.css</code>.<br>
+        <strong>Causa:</strong> Mismo problema en <code>.sidebar-link</code>; además el sidebar no tenía hints de GPU para su animación de colapso.<br>
+        <strong>Fix:</strong> Transición específica en <code>.sidebar-link</code>; se agrega <code>will-change: transform, width</code> al <code>.sidebar</code> para promoverlo a capa GPU antes de animar.
+      </p>
+
+      <h4>css/components/navbar.css — <code>contain: layout</code></h4>
+      <p>
+        <strong>Archivo:</strong> <code>css/components/navbar.css</code>.<br>
+        <strong>Causa:</strong> El navbar es <code>position: fixed</code> y cambia <code>left</code> cuando el sidebar colapsa. Sin contención, el browser reflow-ea el documento entero.<br>
+        <strong>Fix:</strong> <code>contain: layout</code> aísla el cálculo de layout del navbar del resto del documento.
+      </p>
+
+      <h4>pedidos.js / productos.js — <code>esc()</code> sin creación de DOM</h4>
+      <p>
+        <strong>Archivos:</strong> <code>js/pages/pedidos.js</code>, <code>js/pages/productos.js</code>.<br>
+        <strong>Causa:</strong> La función <code>esc()</code> creaba un elemento <code>div</code> en el DOM en cada llamada para escapar HTML. Se invocaba decenas de veces por render de tabla, generando muchas operaciones DOM innecesarias.<br>
+        <strong>Fix:</strong> Reemplazado por cadena de <code>.replace()</code> puro sin tocar el DOM:
+        <code>String(text).replace(/&amp;/g,'&amp;amp;').replace(/&lt;/g,'&amp;lt;')...</code>
+      </p>
+
+      <h4>Skeleton loading — todas las páginas</h4>
+      <p>
+        <strong>Archivos:</strong> <code>css/styles.css</code>, <code>js/pages/pedidos.js</code>, <code>js/pages/productos.js</code>,
+        <code>js/pages/clientes.js</code>, <code>js/pages/pipeline.js</code>, <code>js/pages/logistica.js</code>,
+        <code>js/pages/reportes.js</code>, <code>js/pages/configuracion.js</code>.<br>
+        <strong>Causa:</strong> Todas las páginas mostraban un spinner genérico durante la carga de datos, dejando la pantalla casi en blanco y dando sensación de lentitud.<br>
+        <strong>Fix:</strong> Se implementa un skeleton shimmer (<code>.skeleton-cell</code>) con animación de gradiente horizontal. Cada página muestra placeholders que imitan el layout real del contenido:
+      </p>
+      <ul>
+        <li><strong>pedidos.js / clientes.js / productos.js:</strong> 6 filas de tabla con celdas de ancho variable y avatar/thumbnail placeholder.</li>
+        <li><strong>pipeline.js:</strong> 2 kanban cards por columna con bloques de texto.</li>
+        <li><strong>logistica.js:</strong> 4 route cards con barra de progreso placeholder.</li>
+        <li><strong>reportes.js:</strong> 4 KPI boxes + área de gráfico.</li>
+        <li><strong>configuracion.js:</strong> 5 filas label + input.</li>
+      </ul>
+      <p>
+        El CSS de skeleton se define una sola vez en <code>styles.css</code>:
+        <code>background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite;</code>
+      </p>
+
+      <h4>index.html — Splash inicial con ícono SVG</h4>
+      <p>
+        <strong>Archivo:</strong> <code>index.html</code>.<br>
+        <strong>Causa:</strong> Antes de que el JS cargara, el usuario veía un spinner o pantalla en blanco.<br>
+        <strong>Fix:</strong> El contenido inicial del <code>#app</code> ahora muestra un ícono SVG de caja/paquete centrado en pantalla (sin animación), visible de inmediato sin necesidad de CSS externo.
+      </p>
+
+      <h4>js/utils/ai-chat.js — Asistente IA (Gemini 1.5 Flash)</h4>
+      <p>
+        <strong>Archivos:</strong> <code>js/utils/ai-chat.js</code>, <code>css/components/ai-chat.css</code>.<br>
+        <strong>Causa:</strong> No había forma de consultar datos del CRM en lenguaje natural ni de obtener ayuda contextual sobre el sistema.<br>
+        <strong>Fix:</strong> Se implementa un widget de chat flotante (botón esquina inferior derecha) con panel animado. Usa la API de Google Gemini 1.5 Flash con <em>function calling</em> para consultar datos reales de Supabase:
+      </p>
+      <ul>
+        <li><code>get_ventas(dias)</code> — resumen de facturación del período</li>
+        <li><code>get_ranking_vendedores(dias)</code> — ranking por monto vendido</li>
+        <li><code>get_pedidos(estado)</code> — conteo y valor por estado</li>
+        <li><code>get_clientes(estado)</code> — totales por estado y tipo</li>
+        <li><code>get_stock_bajo()</code> — productos bajo stock mínimo</li>
+        <li><code>get_pipeline()</code> — oportunidades por etapa y valor total</li>
+        <li><code>get_deudas()</code> — clientes con saldo pendiente</li>
+      </ul>
+      <p>
+        <strong>Seguridad:</strong> La API key de Gemini se guarda en la columna <code>organizaciones.gemini_api_key</code> de Supabase
+        (detrás de RLS), no en el código fuente. Se fetchea en el arranque junto con el resto de los datos de la org y se lee desde
+        <code>window.App.organization.gemini_api_key</code>. El asistente también responde preguntas generales sobre cómo usar el CRM.
+      </p>
+      <p>
+        <strong>SQL requerido:</strong>
+        <code>ALTER TABLE organizaciones ADD COLUMN IF NOT EXISTS gemini_api_key TEXT;</code>
+      </p>
 
       <h3>Sesión 35 — Auditoría profunda: fixes críticos de integridad, RPC atómicas y UX</h3>
 
