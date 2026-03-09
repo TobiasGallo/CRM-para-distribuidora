@@ -5,7 +5,7 @@
 
 import supabase from '../config/supabase.js';
 
-const MODEL = 'llama3-groq-70b-8192-tool-use-preview';
+const MODEL = 'llama-3.3-70b-versatile';
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 const SYSTEM = `Sos el asistente IA integrado en un CRM para distribuidoras. Tu nombre es "Asistente".
@@ -21,8 +21,11 @@ El CRM tiene estas secciones:
 - Reportes: análisis de ventas, vendedores, productos top, morosidad, clientes inactivos
 - Configuración: datos de la organización, usuarios, listas de precios
 
-Cuando pregunten por datos como ventas, clientes, pedidos, stock o pipeline, usá las funciones para obtener datos actualizados.
-Para preguntas sobre cómo usar el sistema, explicá claramente.`;
+Cuando pregunten por datos como ventas, clientes, pedidos, stock o pipeline, SIEMPRE usá las funciones para obtener datos reales y actualizados.
+- Para preguntas sobre clientes específicos o sus nombres, usá buscar_cliente o get_clientes.
+- Para preguntas sobre productos, precios o stock, usá get_productos.
+- Para pedidos con nombres de clientes, usá get_pedidos.
+- Nunca digas que no tenés acceso a los datos: siempre consultá las funciones disponibles.`;
 
 const TOOLS = [
   {
@@ -55,11 +58,12 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'get_pedidos',
-      description: 'Obtiene resumen de pedidos. Usar para preguntas sobre pedidos pendientes, en ruta, entregados.',
+      description: 'Obtiene lista de pedidos con nombre del cliente, estado y monto. Usar para preguntas sobre pedidos específicos, quién hizo un pedido, pedidos pendientes, en ruta, entregados.',
       parameters: {
         type: 'object',
         properties: {
-          estado: { type: 'string', description: 'Estado: pendiente, en_preparacion, en_ruta, entregado, cancelado. Opcional.' }
+          estado: { type: 'string', description: 'Estado: pendiente, en_preparacion, en_ruta, entregado, cancelado. Opcional.' },
+          limite: { type: 'integer', description: 'Cantidad máxima de pedidos a devolver. Default: 20.' }
         }
       }
     }
@@ -68,11 +72,41 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'get_clientes',
-      description: 'Obtiene información de clientes. Usar para preguntas sobre cantidad, activos, inactivos, prospectos.',
+      description: 'Obtiene lista de clientes con nombre, tipo, estado y saldo. Usar para preguntas sobre clientes específicos, sus nombres, tipos, estados.',
       parameters: {
         type: 'object',
         properties: {
-          estado: { type: 'string', description: 'Estado: activo, inactivo, prospecto, negociacion, en_pausa. Opcional.' }
+          estado: { type: 'string', description: 'Estado: activo, inactivo, prospecto, negociacion, en_pausa. Opcional.' },
+          tipo: { type: 'string', description: 'Tipo: HORECA, Supermercado, Tienda, Mayorista. Opcional.' },
+          limite: { type: 'integer', description: 'Cantidad máxima a devolver. Default: 30.' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'buscar_cliente',
+      description: 'Busca un cliente por nombre. Usar cuando preguntan por un cliente específico, "cómo se llama", "quién es", "datos de X cliente".',
+      parameters: {
+        type: 'object',
+        properties: {
+          nombre: { type: 'string', description: 'Nombre o parte del nombre del cliente a buscar.' }
+        },
+        required: ['nombre']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_productos',
+      description: 'Obtiene lista de productos con nombre, SKU, precio y stock. Usar para preguntas sobre productos, catálogo, precios, inventario.',
+      parameters: {
+        type: 'object',
+        properties: {
+          categoria: { type: 'string', description: 'Filtrar por categoría. Opcional.' },
+          solo_activos: { type: 'boolean', description: 'Si true, solo devuelve productos activos. Default: true.' }
         }
       }
     }
@@ -136,28 +170,65 @@ async function runTool(name, args) {
     }
 
     if (name === 'get_pedidos') {
-      let q = supabase.from('pedidos').select('estado, total').eq('organizacion_id', orgId);
+      const limite = args?.limite || 20;
+      let q = supabase.from('pedidos')
+        .select('estado, total, created_at, cliente:clientes(nombre_establecimiento)')
+        .eq('organizacion_id', orgId)
+        .order('created_at', { ascending: false })
+        .limit(limite);
       if (args?.estado) q = q.eq('estado', args.estado);
       const { data } = await q;
-      const map = {};
-      data?.forEach(p => { map[p.estado] = (map[p.estado] || 0) + 1; });
-      const total = data?.reduce((s, p) => s + (p.total || 0), 0) || 0;
-      const lineas = Object.entries(map).map(([e, n]) => `${e}: ${n}`).join(', ');
-      return `Pedidos: ${data?.length || 0} — ${lineas || 'ninguno'}. Valor total: ${fmt(total)}.`;
+      if (!data?.length) return 'No se encontraron pedidos.';
+      const totalVal = data.reduce((s, p) => s + (p.total || 0), 0);
+      const lineas = data.map(p => `- ${p.cliente?.nombre_establecimiento || 'Sin cliente'} | ${p.estado} | ${fmt(p.total)}`).join('\n');
+      return `Pedidos (${data.length}), valor total: ${fmt(totalVal)}:\n${lineas}`;
     }
 
     if (name === 'get_clientes') {
-      let q = supabase.from('clientes').select('estado_lead, tipo_cliente').eq('organizacion_id', orgId);
+      const limite = args?.limite || 30;
+      let q = supabase.from('clientes')
+        .select('nombre_establecimiento, tipo_cliente, estado_lead, saldo_pendiente, telefono, email')
+        .eq('organizacion_id', orgId)
+        .order('nombre_establecimiento')
+        .limit(limite);
       if (args?.estado) q = q.eq('estado_lead', args.estado);
+      if (args?.tipo) q = q.eq('tipo_cliente', args.tipo);
       const { data } = await q;
-      const porEstado = {}, porTipo = {};
-      data?.forEach(c => {
-        porEstado[c.estado_lead] = (porEstado[c.estado_lead] || 0) + 1;
-        porTipo[c.tipo_cliente] = (porTipo[c.tipo_cliente] || 0) + 1;
-      });
-      const estados = Object.entries(porEstado).map(([e, n]) => `${e}: ${n}`).join(', ');
-      const tipos = Object.entries(porTipo).map(([t, n]) => `${t}: ${n}`).join(', ');
-      return `Clientes: ${data?.length || 0} total.\nPor estado: ${estados || 'sin datos'}.\nPor tipo: ${tipos || 'sin datos'}.`;
+      if (!data?.length) return 'No se encontraron clientes.';
+      const lineas = data.map(c => `- ${c.nombre_establecimiento} | ${c.tipo_cliente || '-'} | ${c.estado_lead || '-'}${c.saldo_pendiente > 0 ? ` | Deuda: ${fmt(c.saldo_pendiente)}` : ''}`).join('\n');
+      return `Clientes (${data.length}):\n${lineas}`;
+    }
+
+    if (name === 'buscar_cliente') {
+      const { data } = await supabase.from('clientes')
+        .select('nombre_establecimiento, tipo_cliente, estado_lead, saldo_pendiente, telefono, email, direccion')
+        .eq('organizacion_id', orgId)
+        .ilike('nombre_establecimiento', `%${args.nombre}%`)
+        .limit(10);
+      if (!data?.length) return `No se encontró ningún cliente con el nombre "${args.nombre}".`;
+      const lineas = data.map(c => [
+        `Nombre: ${c.nombre_establecimiento}`,
+        `Tipo: ${c.tipo_cliente || '-'}`,
+        `Estado: ${c.estado_lead || '-'}`,
+        c.telefono ? `Tel: ${c.telefono}` : null,
+        c.email ? `Email: ${c.email}` : null,
+        c.direccion ? `Dirección: ${c.direccion}` : null,
+        c.saldo_pendiente > 0 ? `Deuda pendiente: ${fmt(c.saldo_pendiente)}` : null
+      ].filter(Boolean).join(' | ')).join('\n');
+      return `Resultados para "${args.nombre}" (${data.length}):\n${lineas}`;
+    }
+
+    if (name === 'get_productos') {
+      let q = supabase.from('productos')
+        .select('nombre, sku, precio_venta, stock_actual, stock_minimo, categoria, activo')
+        .eq('organizacion_id', orgId)
+        .order('nombre');
+      if (args?.solo_activos !== false) q = q.eq('activo', true);
+      if (args?.categoria) q = q.eq('categoria', args.categoria);
+      const { data } = await q;
+      if (!data?.length) return 'No se encontraron productos.';
+      const lineas = data.map(p => `- ${p.nombre}${p.sku ? ` (${p.sku})` : ''} | Precio: ${fmt(p.precio_venta)} | Stock: ${p.stock_actual ?? '-'}${p.stock_minimo != null ? ` (mín: ${p.stock_minimo})` : ''}${p.categoria ? ` | Cat: ${p.categoria}` : ''}`).join('\n');
+      return `Productos (${data.length}):\n${lineas}`;
     }
 
     if (name === 'get_stock_bajo') {
