@@ -383,6 +383,9 @@ const ConfiguracionPage = {
                       : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>'
                     }
                   </button>
+                  <button class="btn-icon btn-delete-user" data-id="${u.id}" data-nombre="${this.esc(u.nombre)}" title="Eliminar usuario" style="color:var(--danger);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                  </button>
                 ` : ''}
               </div>
             </div>
@@ -405,6 +408,59 @@ const ConfiguracionPage = {
 
     content.querySelectorAll('.btn-toggle-user').forEach(btn => {
       btn.addEventListener('click', () => this.toggleUserActive(btn.dataset.id, btn.dataset.activo === 'true'));
+    });
+
+    content.querySelectorAll('.btn-delete-user').forEach(btn => {
+      btn.addEventListener('click', () => this.confirmarEliminarUsuario(btn.dataset.id, btn.dataset.nombre));
+    });
+  },
+
+  confirmarEliminarUsuario(userId, nombre) {
+    document.getElementById('modalContainer').innerHTML = `
+      <div class="modal-overlay" id="deleteUserModal">
+        <div class="modal" style="max-width:440px;">
+          <div class="modal-header">
+            <h2>Eliminar usuario</h2>
+            <button class="modal-close" id="btnCloseDelUser">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p>¿Estás seguro de eliminar a <strong>${nombre}</strong>?</p>
+            <p style="color:var(--danger);font-size:var(--font-size-sm);margin-top:0.5rem;">
+              Esta acción es permanente. El usuario podrá volver a registrarse con el mismo email.
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelDelUser">Cancelar</button>
+            <button class="btn btn-danger" id="btnConfirmDelUser">Eliminar definitivamente</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const close = () => this.closeModal();
+    document.getElementById('btnCloseDelUser').addEventListener('click', close);
+    document.getElementById('btnCancelDelUser').addEventListener('click', close);
+    document.getElementById('deleteUserModal').addEventListener('click', (e) => {
+      if (e.target.id === 'deleteUserModal') close();
+    });
+
+    document.getElementById('btnConfirmDelUser').addEventListener('click', async () => {
+      const btn = document.getElementById('btnConfirmDelUser');
+      btn.disabled = true;
+      btn.textContent = 'Eliminando...';
+      try {
+        const { error } = await supabase.rpc('eliminar_usuario_completo', { p_usuario_id: userId });
+        if (error) throw error;
+        Toast.success('Usuario eliminado');
+        close();
+        await this.loadTab('usuarios');
+      } catch (err) {
+        Toast.error(err.message || 'Error al eliminar el usuario');
+        btn.disabled = false;
+        btn.textContent = 'Eliminar definitivamente';
+      }
     });
   },
 
